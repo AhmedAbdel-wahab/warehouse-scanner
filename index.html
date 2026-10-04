@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Warehouse Scanner</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #111827;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .status {
+      background: #1f2937;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 15px 0;
+    }
+
+    video {
+      width: 100%;
+      max-width: 500px;
+      border-radius: 15px;
+      background: #000;
+      display: block;
+      margin: 15px auto;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 14px 22px;
+      font-size: 17px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    #startBtn {
+      background: #16a34a;
+      color: white;
+    }
+
+    #stopBtn {
+      background: #dc2626;
+      color: white;
+    }
+
+    .result {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 15px;
+      font-size: 20px;
+      word-break: break-all;
+    }
+
+    .success {
+      border-color: #22c55e;
+      color: #86efac;
+    }
+
+    .error {
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>📷 Warehouse Scanner</h1>
+
+  <div id="status" class="status">
+    جاري تجهيز الكاميرا...
+  </div>
+
+  <video id="video" autoplay playsinline></video>
+
+  <div>
+    <button id="startBtn">📷 تشغيل الكاميرا</button>
+    <button id="stopBtn">⛔ إيقاف</button>
+  </div>
+
+  <div id="result" class="result">
+    لم يتم قراءة Barcode بعد
+  </div>
+
+</div>
+
+<script>
+
+let stream = null;
+let detector = null;
+let scanning = false;
+
+const video = document.getElementById("video");
+const statusBox = document.getElementById("status");
+const resultBox = document.getElementById("result");
+
+function setStatus(message, type = "") {
+
+  statusBox.textContent = message;
+
+  statusBox.className = "status";
+
+  if (type === "success") {
+    statusBox.classList.add("success");
+  }
+
+  if (type === "error") {
+    statusBox.classList.add("error");
+  }
+}
+
+
+async function startCamera() {
+
+  try {
+
+    setStatus("جاري طلب إذن الكاميرا...");
+
+    if (!window.isSecureContext) {
+
+      throw new Error(
+        "الصفحة ليست HTTPS. يجب فتحها من GitHub Pages."
+      );
+
+    }
+
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+
+      throw new Error(
+        "المتصفح لا يدعم الوصول إلى الكاميرا."
+      );
+
+    }
+
+    stream = await navigator.mediaDevices.getUserMedia({
+
+      video: {
+        facingMode: {
+          ideal: "environment"
+        }
+      },
+
+      audio: false
+
+    });
+
+    video.srcObject = stream;
+
+    await video.play();
+
+    setStatus(
+      "✅ الكاميرا تعمل الآن. وجّه الكاميرا إلى Barcode.",
+      "success"
+    );
+
+    if ("BarcodeDetector" in window) {
+
+      try {
+
+        detector = new BarcodeDetector({
+          formats: [
+            "qr_code",
+            "code_128",
+            "code_39",
+            "ean_13",
+            "ean_8",
+            "upc_a",
+            "upc_e",
+            "itf",
+            "codabar"
+          ]
+        });
+
+      } catch (e) {
+
+        detector = new BarcodeDetector();
+
+      }
+
+      scanning = true;
+
+      scanBarcode();
+
+    } else {
+
+      setStatus(
+        "⚠️ الكاميرا تعمل، لكن هذا المتصفح لا يدعم BarcodeDetector.",
+        "error"
+      );
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+    let message = "❌ فشل تشغيل الكاميرا.";
+
+    if (error.name === "NotAllowedError") {
+
+      message =
+        "❌ تم رفض إذن الكاميرا. اسمح للكاميرا لهذا الموقع من إعدادات المتصفح.";
+
+    }
+
+    else if (error.name === "NotFoundError") {
+
+      message =
+        "❌ لم يتم العثور على كاميرا.";
+
+    }
+
+    else if (error.name === "NotReadableError") {
+
+      message =
+        "❌ الكاميرا مستخدمة بواسطة برنامج آخر.";
+
+    }
+
+    else if (error.message) {
+
+      message += "\n" + error.message;
+
+    }
+
+    setStatus(message, "error");
+  }
+
+}
+
+
+async function scanBarcode() {
+
+  if (!scanning || !detector) {
+    return;
+  }
+
+  try {
+
+    const barcodes = await detector.detect(video);
+
+    if (barcodes.length > 0) {
+
+      const value = barcodes[0].rawValue;
+
+      if (value) {
+
+        resultBox.textContent = "✅ Barcode: " + value;
+
+        resultBox.className = "result success";
+
+        setStatus(
+          "✅ تم قراءة Barcode بنجاح",
+          "success"
+        );
+
+        scanning = false;
+
+        stopCamera();
+
+        return;
+
+      }
+
+    }
+
+  } catch (error) {
+
+    console.log("Barcode detection:", error);
+
+  }
+
+  requestAnimationFrame(scanBarcode);
+
+}
+
+
+function stopCamera() {
+
+  scanning = false;
+
+  if (stream) {
+
+    stream.getTracks().forEach(track => {
+      track.stop();
+    });
+
+    stream = null;
+  }
+
+  video.srcObject = null;
+
+}
+
+
+document
+  .getElementById("startBtn")
+  .addEventListener("click", startCamera);
+
+
+document
+  .getElementById("stopBtn")
+  .addEventListener("click", () => {
+
+    stopCamera();
+
+    setStatus("تم إيقاف الكاميرا.");
+
+  });
+
+
+window.addEventListener("beforeunload", () => {
+
+  stopCamera();
+
+});
+
+
+</script>
+
+</body>
+</html>
