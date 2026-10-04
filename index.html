@@ -11,7 +11,9 @@
 
   <title>Warehouse Barcode Scanner</title>
 
+  <!-- ZXing -->
   <script src="https://unpkg.com/@zxing/browser@latest"></script>
+
 
   <style>
 
@@ -19,55 +21,115 @@
       box-sizing: border-box;
     }
 
+
     body {
+
       margin: 0;
+
       padding: 15px;
+
       background: #111;
+
       color: #fff;
+
       font-family: Arial, sans-serif;
+
       text-align: center;
+
     }
+
 
     h2 {
+
       margin: 5px 0 15px;
+
     }
+
+
+    /* =========================
+       CAMERA
+       ========================= */
 
     #cameraBox {
+
       position: relative;
+
       width: 100%;
+
       max-width: 900px;
+
       margin: auto;
+
       background: #000;
+
       overflow: hidden;
+
       border-radius: 12px;
+
     }
 
-    video {
+
+    #video {
+
       width: 100%;
+
       height: auto;
+
       display: block;
 
-      /* Mirror للمستخدم */
-      transform: scaleX(-1);
+      /*
+       * الوضع الطبيعي افتراضيًا
+       */
+
+      transform: scaleX(1);
+
     }
 
+
+    /*
+     * عندما يتم تفعيل Mirror
+     */
+
+    #video.mirrored {
+
+      transform: scaleX(-1);
+
+    }
+
+
+    /* =========================
+       SCAN FRAME
+       ========================= */
+
     #scanFrame {
+
       position: absolute;
+
       left: 10%;
+
       right: 10%;
+
       top: 25%;
+
       height: 50%;
 
       border: 3px solid #00ff66;
+
       border-radius: 10px;
 
       pointer-events: none;
+
     }
 
+
     #scanLine {
+
       position: absolute;
+
       left: 0;
+
       right: 0;
+
       top: 50%;
 
       height: 2px;
@@ -77,27 +139,43 @@
       box-shadow: 0 0 8px red;
 
       animation: scanMove 2s infinite;
+
     }
+
 
     @keyframes scanMove {
 
       0% {
+
         top: 10%;
+
       }
 
       50% {
+
         top: 90%;
+
       }
 
       100% {
+
         top: 10%;
+
       }
 
     }
 
+
+    /* =========================
+       INFO
+       ========================= */
+
     .info {
+
       max-width: 900px;
+
       margin: 12px auto;
+
       padding: 12px;
 
       background: #222;
@@ -105,12 +183,18 @@
       border-radius: 10px;
 
       text-align: right;
+
     }
 
+
     #status {
+
       font-size: 18px;
+
       font-weight: bold;
+
     }
+
 
     #result {
 
@@ -132,6 +216,14 @@
 
     }
 
+
+    #cameraInfo {
+
+      margin-top: 10px;
+
+    }
+
+
     #debug {
 
       margin-top: 10px;
@@ -146,12 +238,23 @@
 
       white-space: pre-wrap;
 
+      word-break: break-word;
+
     }
 
+
+    /* =========================
+       BUTTONS
+       ========================= */
+
     .buttons {
+
       max-width: 900px;
+
       margin: 10px auto;
+
     }
+
 
     button {
 
@@ -167,7 +270,17 @@
 
       cursor: pointer;
 
+      transition: 0.2s;
+
     }
+
+
+    button:hover {
+
+      opacity: 0.85;
+
+    }
+
 
     #startBtn {
 
@@ -177,6 +290,7 @@
 
     }
 
+
     #stopBtn {
 
       background: #d33;
@@ -184,6 +298,7 @@
       color: white;
 
     }
+
 
     #captureBtn {
 
@@ -193,6 +308,7 @@
 
     }
 
+
     #fileBtn {
 
       background: #9333ea;
@@ -201,11 +317,35 @@
 
     }
 
+
+    #mirrorBtn {
+
+      background: #f59e0b;
+
+      color: white;
+
+    }
+
+
+    #normalBtn {
+
+      background: #475569;
+
+      color: white;
+
+    }
+
+
     #fileInput {
 
       display: none;
 
     }
+
+
+    /* =========================
+       CAPTURED IMAGE
+       ========================= */
 
     #testImage {
 
@@ -223,6 +363,14 @@
 
     }
 
+
+    canvas {
+
+      display: none;
+
+    }
+
+
     .small {
 
       color: #aaa;
@@ -230,6 +378,25 @@
       font-size: 13px;
 
       margin-top: 8px;
+
+    }
+
+
+    .mode {
+
+      display: inline-block;
+
+      margin-top: 8px;
+
+      padding: 6px 12px;
+
+      border-radius: 20px;
+
+      background: #333;
+
+      color: #fff;
+
+      font-size: 13px;
 
     }
 
@@ -246,7 +413,12 @@
   </h2>
 
 
+  <!-- =========================
+       CAMERA
+       ========================= -->
+
   <div id="cameraBox">
+
 
     <video
       id="video"
@@ -262,59 +434,112 @@
 
     </div>
 
+
   </div>
 
 
+  <!-- =========================
+       INFORMATION
+       ========================= -->
+
   <div class="info">
 
+
     <div id="status">
+
       ⏳ جاري تشغيل الكاميرا...
+
     </div>
 
 
     <div class="small">
+
       وجّه الـBarcode داخل الإطار الأخضر
+
+    </div>
+
+
+    <div
+      id="mode"
+      class="mode">
+
+      📷 الوضع الطبيعي
+
     </div>
 
 
     <div id="result">
+
       لا يوجد Barcode
+
     </div>
 
 
     <div
       id="cameraInfo"
       class="small">
+
       -
+
     </div>
 
 
     <div id="debug">
+
       -
+
     </div>
+
 
   </div>
 
 
+  <!-- =========================
+       BUTTONS
+       ========================= -->
+
   <div class="buttons">
 
+
     <button id="startBtn">
+
       ▶ تشغيل الكاميرا
-    </button>
 
-
-    <button id="captureBtn">
-      📸 التقاط وفحص
     </button>
 
 
     <button id="stopBtn">
+
       ⏹ إيقاف
+
+    </button>
+
+
+    <button id="mirrorBtn">
+
+      🪞 عكس الكاميرا
+
+    </button>
+
+
+    <button id="normalBtn">
+
+      📷 عادي
+
+    </button>
+
+
+    <button id="captureBtn">
+
+      📸 التقاط وفحص
+
     </button>
 
 
     <button id="fileBtn">
+
       🖼️ فحص صورة Barcode
+
     </button>
 
 
@@ -323,8 +548,11 @@
       type="file"
       accept="image/*">
 
+
   </div>
 
+
+  <!-- الصورة الملتقطة -->
 
   <img
     id="testImage"
@@ -338,6 +566,11 @@
 
   <script>
 
+
+    /* =====================================================
+       VARIABLES
+       ===================================================== */
+
     let codeReader = null;
 
     let controls = null;
@@ -348,21 +581,32 @@
 
     let scanning = false;
 
+    let isMirrored = false;
+
 
     const statusEl =
       document.getElementById("status");
 
+
     const resultEl =
       document.getElementById("result");
+
 
     const cameraInfoEl =
       document.getElementById("cameraInfo");
 
+
     const debugEl =
       document.getElementById("debug");
 
+
+    const modeEl =
+      document.getElementById("mode");
+
+
     const testImage =
       document.getElementById("testImage");
+
 
     const fileInput =
       document.getElementById("fileInput");
@@ -371,9 +615,14 @@
     video =
       document.getElementById("video");
 
+
     canvas =
       document.getElementById("canvas");
 
+
+    /* =====================================================
+       STATUS
+       ===================================================== */
 
     function setStatus(text) {
 
@@ -388,6 +637,10 @@
 
     }
 
+
+    /* =====================================================
+       ESCAPE HTML
+       ===================================================== */
 
     function escapeHtml(text) {
 
@@ -406,10 +659,15 @@
     }
 
 
+    /* =====================================================
+       SHOW RESULT
+       ===================================================== */
+
     function showResult(
       value,
       format
     ) {
+
 
       resultEl.innerHTML =
 
@@ -420,25 +678,93 @@
         "</b>" +
 
         (
+
           format
 
-            ? "<br><small>Format: " +
+            ?
 
-              escapeHtml(
-                String(format)
-              ) +
+            "<br><small>Format: " +
 
-              "</small>"
+            escapeHtml(
+              String(format)
+            ) +
 
-            : ""
+            "</small>"
+
+            :
+
+            ""
+
         );
+
 
     }
 
 
+    /* =====================================================
+       MIRROR CONTROL
+       ===================================================== */
+
+    function updateMirror() {
+
+
+      if (isMirrored) {
+
+        video.classList.add(
+          "mirrored"
+        );
+
+
+        modeEl.textContent =
+          "🪞 الصورة معكوسة";
+
+
+      } else {
+
+        video.classList.remove(
+          "mirrored"
+        );
+
+
+        modeEl.textContent =
+          "📷 الوضع الطبيعي";
+
+      }
+
+    }
+
+
+    function mirrorCamera() {
+
+      isMirrored =
+        !isMirrored;
+
+
+      updateMirror();
+
+    }
+
+
+    function normalCamera() {
+
+      isMirrored =
+        false;
+
+
+      updateMirror();
+
+    }
+
+
+    /* =====================================================
+       START CAMERA
+       ===================================================== */
+
     async function startCamera() {
 
+
       try {
+
 
         stopCamera(false);
 
@@ -446,6 +772,10 @@
         setStatus(
           "⏳ جاري تشغيل الكاميرا..."
         );
+
+
+        resultEl.textContent =
+          "لا يوجد Barcode";
 
 
         setDebug(
@@ -458,47 +788,81 @@
           "undefined"
         ) {
 
+
           throw new Error(
+
             "ZXingBrowser غير موجود."
+
           );
 
         }
 
 
         codeReader =
+
           new ZXingBrowser
             .BrowserMultiFormatReader();
 
 
+        /*
+         * إعدادات الكاميرا
+         */
+
         const constraints = {
+
 
           video: {
 
+
+            /*
+             * نحاول استخدام الكاميرا الخلفية
+             * إن كانت متاحة
+             */
+
             facingMode: {
+
               ideal: "environment"
+
             },
+
 
             width: {
+
               ideal: 1920,
+
               min: 640
+
             },
+
 
             height: {
+
               ideal: 1080,
+
               min: 480
+
             },
 
+
             frameRate: {
+
               ideal: 30,
+
               min: 15
+
             }
 
           },
+
 
           audio: false
 
         };
 
+
+        /*
+         * تشغيل ZXing
+         */
 
         controls =
 
@@ -511,7 +875,13 @@
 
               (result, error) => {
 
+
+                /*
+                 * تم العثور على Barcode
+                 */
+
                 if (result) {
+
 
                   const value =
                     result.getText();
@@ -519,15 +889,25 @@
 
                   let format = "";
 
+
                   try {
 
+
                     format =
+
                       result
+
                         .getBarcodeFormat()
+
                         .toString();
+
 
                   } catch (e) {}
 
+
+                  /*
+                   * عرض النتيجة
+                   */
 
                   showResult(
                     value,
@@ -545,29 +925,44 @@
                     "LIVE CAMERA SUCCESS\n\n" +
 
                     "Value: " +
+
                     value +
 
-                    "\nFormat: " +
+                    "\n\nFormat: " +
+
                     format
 
                   );
 
 
+                  /*
+                   * إرسال Barcode للصفحة
+                   * الرئيسية لو موجودة
+                   */
+
                   try {
+
 
                     window.parent
                       .postMessage(
 
                         {
-                          type: "barcode",
-                          barcode: value
+
+                          type:
+                            "barcode",
+
+                          barcode:
+                            value
+
                         },
 
                         "*"
 
                       );
 
+
                   } catch (e) {}
+
 
                 }
 
@@ -584,20 +979,30 @@
         );
 
 
+        /*
+         * قراءة معلومات الكاميرا
+         */
+
         setTimeout(() => {
 
+
           try {
+
 
             const stream =
               video.srcObject;
 
 
             if (
+
               stream &&
+
               stream
                 .getVideoTracks()
                 .length
+
             ) {
+
 
               const track =
                 stream
@@ -613,22 +1018,31 @@
                 "الكاميرا: " +
 
                 (
+
                   track.label ||
+
                   "Unknown"
+
                 ) +
 
                 " | الدقة: " +
 
                 (
+
                   settings.width ||
+
                   "?"
+
                 ) +
 
                 " × " +
 
                 (
+
                   settings.height ||
+
                   "?"
+
                 );
 
 
@@ -639,41 +1053,82 @@
                 "Camera: " +
 
                 (
+
                   track.label ||
+
                   "Unknown"
+
                 ) +
 
                 "\nResolution: " +
 
                 (
+
                   settings.width ||
+
                   "?"
+
                 ) +
 
                 " x " +
 
                 (
+
                   settings.height ||
+
                   "?"
+
                 ) +
 
                 "\nFacing: " +
 
                 (
+
                   settings.facingMode ||
+
                   "unknown"
+
+                ) +
+
+                "\nFocus Mode: " +
+
+                (
+
+                  settings.focusMode ||
+
+                  "not reported"
+
+                ) +
+
+                "\nZoom: " +
+
+                (
+
+                  settings.zoom ||
+
+                  "not reported"
+
                 )
 
               );
 
             }
 
-          } catch (e) {}
+
+          } catch (e) {
+
+
+            console.log(e);
+
+
+          }
+
 
         }, 1000);
 
 
       } catch (error) {
+
 
         console.error(error);
 
@@ -691,23 +1146,188 @@
           "ERROR:\n" +
 
           (
+
             error.message ||
+
             error
+
           )
 
         );
+
+
+      }
+
+
+    }
+
+
+    /* =====================================================
+       CAPTURE CAMERA IMAGE
+       ===================================================== */
+
+    function captureAndDecode() {
+
+
+      try {
+
+
+        if (
+          video.readyState < 2
+        ) {
+
+
+          setStatus(
+            "❌ الكاميرا غير جاهزة."
+          );
+
+
+          return;
+
+        }
+
+
+        const width =
+          video.videoWidth;
+
+
+        const height =
+          video.videoHeight;
+
+
+        if (
+          !width ||
+          !height
+        ) {
+
+
+          setStatus(
+            "❌ لا توجد صورة من الكاميرا."
+          );
+
+
+          return;
+
+        }
+
+
+        /*
+         * Canvas يأخذ الصورة الأصلية
+         * وليس الصورة المعكوسة
+         */
+
+        canvas.width =
+          width;
+
+
+        canvas.height =
+          height;
+
+
+        const ctx =
+          canvas.getContext(
+            "2d"
+          );
+
+
+        ctx.drawImage(
+
+          video,
+
+          0,
+
+          0,
+
+          width,
+
+          height
+
+        );
+
+
+        const dataUrl =
+          canvas.toDataURL(
+            "image/png"
+          );
+
+
+        /*
+         * عرض الصورة
+         */
+
+        testImage.src =
+          dataUrl;
+
+
+        testImage.style.display =
+          "block";
+
+
+        /*
+         * إنشاء Image للفحص
+         */
+
+        const img =
+          new Image();
+
+
+        img.onload =
+          async function() {
+
+
+            await decodeImage(
+
+              img,
+
+              "Camera Capture"
+
+            );
+
+
+          };
+
+
+        img.src =
+          dataUrl;
+
+
+      } catch (error) {
+
+
+        setStatus(
+          "❌ خطأ في التقاط الصورة"
+        );
+
+
+        setDebug(
+
+          error.message ||
+
+          String(error)
+
+        );
+
 
       }
 
     }
 
 
+    /* =====================================================
+       DECODE IMAGE
+       ===================================================== */
+
     async function decodeImage(
+
       imageSource,
+
       sourceName
+
     ) {
 
+
       try {
+
 
         setStatus(
           "🔎 جاري فحص الصورة..."
@@ -726,25 +1346,23 @@
 
 
         const reader =
+
           new ZXingBrowser
             .BrowserMultiFormatReader();
 
 
-        let result;
+        const result =
 
-
-        /*
-         * نجرب Image Element
-         */
-
-        result =
           await reader
             .decodeFromImageElement(
+
               imageSource
+
             );
 
 
         if (!result) {
+
 
           throw new Error(
             "No result"
@@ -762,10 +1380,15 @@
 
         try {
 
+
           format =
+
             result
+
               .getBarcodeFormat()
+
               .toString();
+
 
         } catch (e) {}
 
@@ -796,19 +1419,30 @@
         );
 
 
+        /*
+         * إرسال النتيجة للصفحة الرئيسية
+         */
+
         try {
+
 
           window.parent
             .postMessage(
 
               {
-                type: "barcode",
-                barcode: value
+
+                type:
+                  "barcode",
+
+                barcode:
+                  value
+
               },
 
               "*"
 
             );
+
 
         } catch (e) {}
 
@@ -817,6 +1451,7 @@
 
 
       } catch (error) {
+
 
         console.error(error);
 
@@ -831,8 +1466,11 @@
           "IMAGE DECODE FAILED\n\n" +
 
           (
+
             error.message ||
+
             error
+
           )
 
         );
@@ -845,154 +1483,44 @@
     }
 
 
-    function captureAndDecode() {
-
-      try {
-
-        if (
-          video.readyState < 2
-        ) {
-
-          setStatus(
-            "❌ الكاميرا غير جاهزة."
-          );
-
-          return;
-
-        }
-
-
-        const width =
-          video.videoWidth;
-
-
-        const height =
-          video.videoHeight;
-
-
-        if (
-          !width ||
-          !height
-        ) {
-
-          setStatus(
-            "❌ لا توجد صورة من الكاميرا."
-          );
-
-          return;
-
-        }
-
-
-        canvas.width =
-          width;
-
-        canvas.height =
-          height;
-
-
-        const ctx =
-          canvas.getContext(
-            "2d"
-          );
-
-
-        /*
-         * الصورة الأصلية بدون Mirror
-         */
-
-        ctx.drawImage(
-
-          video,
-
-          0,
-          0,
-
-          width,
-          height
-
-        );
-
-
-        const dataUrl =
-          canvas.toDataURL(
-            "image/png"
-          );
-
-
-        testImage.src =
-          dataUrl;
-
-        testImage.style.display =
-          "block";
-
-
-        const img =
-          new Image();
-
-
-        img.onload =
-          async function() {
-
-            await decodeImage(
-
-              img,
-
-              "Camera Capture"
-
-            );
-
-          };
-
-
-        img.src =
-          dataUrl;
-
-
-      } catch (error) {
-
-        setStatus(
-          "❌ خطأ في التقاط الصورة"
-        );
-
-
-        setDebug(
-          error.message ||
-          String(error)
-        );
-
-      }
-
-    }
-
-
-    /*
-     * اختيار صورة من الكمبيوتر
-     */
+    /* =====================================================
+       FILE IMAGE
+       ===================================================== */
 
     document
+
       .getElementById("fileBtn")
+
       .addEventListener(
+
         "click",
+
         () => {
 
           fileInput.click();
 
         }
+
       );
 
 
     fileInput
+
       .addEventListener(
+
         "change",
+
         () => {
+
 
           const file =
             fileInput.files[0];
 
 
           if (!file) {
+
             return;
+
           }
 
 
@@ -1005,6 +1533,7 @@
           testImage.src =
             url;
 
+
           testImage.style.display =
             "block";
 
@@ -1016,6 +1545,7 @@
           img.onload =
             async function() {
 
+
               await decodeImage(
 
                 img,
@@ -1024,9 +1554,11 @@
 
               );
 
+
               URL.revokeObjectURL(
                 url
               );
+
 
             };
 
@@ -1034,9 +1566,11 @@
           img.onerror =
             function() {
 
+
               setStatus(
                 "❌ فشل تحميل الصورة."
               );
+
 
             };
 
@@ -1044,108 +1578,202 @@
           img.src =
             url;
 
+
         }
+
       );
 
+
+    /* =====================================================
+       STOP CAMERA
+       ===================================================== */
 
     function stopCamera(
       showMessage = true
     ) {
+
 
       scanning = false;
 
 
       try {
 
+
         if (controls) {
+
 
           controls.stop();
 
+
           controls = null;
 
+
         }
+
 
       } catch (e) {}
 
 
       try {
+
 
         if (codeReader) {
 
+
           codeReader.reset();
 
+
         }
+
 
       } catch (e) {}
 
 
       try {
 
+
         if (video.srcObject) {
 
+
           video.srcObject
+
             .getTracks()
+
             .forEach(
+
               track =>
                 track.stop()
+
             );
+
 
           video.srcObject =
             null;
 
+
         }
+
 
       } catch (e) {}
 
 
       if (showMessage) {
 
+
         setStatus(
           "⏹ الكاميرا متوقفة"
         );
 
+
       }
+
 
     }
 
 
+    /* =====================================================
+       BUTTON EVENTS
+       ===================================================== */
+
     document
+
       .getElementById("startBtn")
+
       .addEventListener(
+
         "click",
+
         startCamera
+
       );
 
 
     document
-      .getElementById("captureBtn")
-      .addEventListener(
-        "click",
-        captureAndDecode
-      );
 
-
-    document
       .getElementById("stopBtn")
+
       .addEventListener(
+
         "click",
-        () => stopCamera(true)
+
+        () => {
+
+          stopCamera(true);
+
+        }
+
       );
+
+
+    document
+
+      .getElementById("mirrorBtn")
+
+      .addEventListener(
+
+        "click",
+
+        mirrorCamera
+
+      );
+
+
+    document
+
+      .getElementById("normalBtn")
+
+      .addEventListener(
+
+        "click",
+
+        normalCamera
+
+      );
+
+
+    document
+
+      .getElementById("captureBtn")
+
+      .addEventListener(
+
+        "click",
+
+        captureAndDecode
+
+      );
+
+
+    /* =====================================================
+       INITIALIZE
+       ===================================================== */
+
+    updateMirror();
 
 
     window.addEventListener(
+
       "load",
+
       () => {
 
+
         setTimeout(
+
           startCamera,
+
           500
+
         );
 
+
       }
+
     );
 
+
   </script>
+
 
 </body>
 
