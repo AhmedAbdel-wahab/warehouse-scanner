@@ -15,7 +15,7 @@
   </title>
 
   <script
-    src="https://unpkg.com/@zxing/browser@latest"
+    src="https://unpkg.com/@zxing/browser@0.1.5"
   ></script>
 
   <style>
@@ -709,7 +709,7 @@
   const SCANNER_TOKEN = "";
 
 
-  function sendBarcodeToLaptop(barcode) {
+  async function sendBarcodeToLaptop(barcode) {
 
     barcode =
       String(
@@ -755,25 +755,25 @@
       "📤 جاري إرسال Barcode للاب...";
 
 
-    let sent = false;
-
-
     /*
-      1) fetch بدون CORS
-      ده أنسب طريقة مع Google Apps Script
-      من صفحة GitHub Pages.
+      طلب واحد فقط (fetch بدون CORS).
+      كان الكود القديم يرسل 3 طلبات
+      (fetch + iframe + image) فيتسجل
+      الباركود 3 مرات في الشيت.
     */
 
     try {
 
-      fetch(url, {
+      await fetch(url, {
         method: "GET",
         mode: "no-cors",
         cache: "no-store",
         credentials: "omit"
       });
 
-      sent = true;
+      status.textContent =
+        "✅ تم إرسال Barcode للاب: " +
+        barcode;
 
     } catch (error) {
 
@@ -782,90 +782,10 @@
         error
       );
 
-    }
-
-
-    /*
-      2) iframe مخفي كخطة بديلة
-    */
-
-    try {
-
-      const iframe =
-        document.createElement(
-          "iframe"
-        );
-
-      iframe.style.display =
-        "none";
-
-      iframe.src =
-        url;
-
-      document.body.appendChild(
-        iframe
-      );
-
-      setTimeout(
-        function() {
-
-          if (
-            iframe &&
-            iframe.parentNode
-          ) {
-
-            iframe.parentNode
-              .removeChild(
-                iframe
-              );
-
-          }
-
-        },
-        10000
-      );
-
-      sent = true;
-
-    } catch (error) {
-
-      console.error(
-        "iframe send error:",
-        error
-      );
+      status.textContent =
+        "❌ فشل إرسال Barcode للاب — تأكد من الإنترنت";
 
     }
-
-
-    /*
-      3) Image beacon كخطة أخيرة
-    */
-
-    try {
-
-      const image =
-        new Image();
-
-      image.src =
-        url;
-
-      sent = true;
-
-    } catch (error) {
-
-      console.error(
-        "image send error:",
-        error
-      );
-
-    }
-
-
-    status.textContent =
-      sent
-        ? "✅ تم إرسال Barcode للاب: " +
-          barcode
-        : "❌ فشل إرسال Barcode للاب";
 
   }
 
