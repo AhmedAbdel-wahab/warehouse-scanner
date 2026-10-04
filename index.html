@@ -15,8 +15,17 @@
   </title>
 
   <script
-    src="https://unpkg.com/@zxing/browser@0.1.5"
+    src="https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js"
   ></script>
+
+  <script>
+    /* لو unpkg فشل نحمل من jsDelivr */
+    if (typeof ZXingBrowser === "undefined") {
+      document.write(
+        '<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"><\/script>'
+      );
+    }
+  </script>
 
   <style>
 
@@ -283,7 +292,7 @@
 <div class="container">
 
   <h1>
-    📱 Warehouse Barcode Scanner
+    📱 Warehouse Barcode Scanner <small style="font-size:12px;opacity:.6">v2</small>
   </h1>
 
 
@@ -343,6 +352,14 @@
     onclick="switchCamera()"
   >
     🔄 تبديل الكاميرا
+  </button>
+
+
+  <button
+    class="btn-light"
+    onclick="handleBarcode('TEST-' + Date.now())"
+  >
+    🧪 إرسال باركود تجريبي
   </button>
 
 
