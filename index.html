@@ -706,98 +706,168 @@
      SEND BARCODE
   ========================================================= */
 
-/* =========================================================
-   SEND BARCODE
-========================================================= */
-
-function sendBarcodeToLaptop(barcode) {
-
-  barcode =
-    String(
-      barcode || ""
-    ).trim();
+  const SCANNER_TOKEN = "";
 
 
-  if (!barcode) {
-    return;
+  function sendBarcodeToLaptop(barcode) {
+
+    barcode =
+      String(
+        barcode || ""
+      ).trim();
+
+
+    if (!barcode) {
+      return;
+    }
+
+
+    const separator =
+      GOOGLE_SCRIPT_URL.includes("?")
+        ? "&"
+        : "?";
+
+
+    let url =
+      GOOGLE_SCRIPT_URL +
+      separator +
+      "action=scan" +
+      "&barcode=" +
+      encodeURIComponent(
+        barcode
+      ) +
+      "&t=" +
+      Date.now();
+
+
+    if (SCANNER_TOKEN) {
+
+      url +=
+        "&token=" +
+        encodeURIComponent(
+          SCANNER_TOKEN
+        );
+
+    }
+
+
+    status.textContent =
+      "📤 جاري إرسال Barcode للاب...";
+
+
+    let sent = false;
+
+
+    /*
+      1) fetch بدون CORS
+      ده أنسب طريقة مع Google Apps Script
+      من صفحة GitHub Pages.
+    */
+
+    try {
+
+      fetch(url, {
+        method: "GET",
+        mode: "no-cors",
+        cache: "no-store",
+        credentials: "omit"
+      });
+
+      sent = true;
+
+    } catch (error) {
+
+      console.error(
+        "fetch send error:",
+        error
+      );
+
+    }
+
+
+    /*
+      2) iframe مخفي كخطة بديلة
+    */
+
+    try {
+
+      const iframe =
+        document.createElement(
+          "iframe"
+        );
+
+      iframe.style.display =
+        "none";
+
+      iframe.src =
+        url;
+
+      document.body.appendChild(
+        iframe
+      );
+
+      setTimeout(
+        function() {
+
+          if (
+            iframe &&
+            iframe.parentNode
+          ) {
+
+            iframe.parentNode
+              .removeChild(
+                iframe
+              );
+
+          }
+
+        },
+        10000
+      );
+
+      sent = true;
+
+    } catch (error) {
+
+      console.error(
+        "iframe send error:",
+        error
+      );
+
+    }
+
+
+    /*
+      3) Image beacon كخطة أخيرة
+    */
+
+    try {
+
+      const image =
+        new Image();
+
+      image.src =
+        url;
+
+      sent = true;
+
+    } catch (error) {
+
+      console.error(
+        "image send error:",
+        error
+      );
+
+    }
+
+
+    status.textContent =
+      sent
+        ? "✅ تم إرسال Barcode للاب: " +
+          barcode
+        : "❌ فشل إرسال Barcode للاب";
+
   }
-
-
-  /*
-    نستخدم Image Beacon
-    بدل fetch.
-
-    السبب:
-    لا نحتاج CORS.
-  */
-
-  const separator =
-    GOOGLE_SCRIPT_URL.includes("?")
-      ? "&"
-      : "?";
-
-
-  /*
-    إضافة timestamp لمنع Cache
-    وإرسال الطلب مرة واحدة فقط.
-  */
-
-  const url =
-    GOOGLE_SCRIPT_URL +
-    separator +
-    "action=scan" +
-    "&barcode=" +
-    encodeURIComponent(
-      barcode
-    ) +
-    "&t=" +
-    Date.now();
-
-
-  status.textContent =
-    "📤 جاري إرسال Barcode للاب...";
-
-
-  const image =
-    new Image();
-
-
-  image.onload =
-    function() {
-
-      status.textContent =
-        "✅ تم إرسال Barcode للاب: " +
-        barcode;
-
-    };
-
-
-  image.onerror =
-    function() {
-
-      /*
-        Apps Script يرجع HTML،
-        لذلك بعض المتصفحات قد تعتبر
-        Image request خطأ رغم أن الطلب وصل.
-
-        لذلك لا نعتبر الخطأ فشلًا مؤكدًا.
-      */
-
-      status.textContent =
-        "📡 تم إرسال Barcode للاب: " +
-        barcode;
-
-    };
-
-
-  /*
-    إرسال الطلب مرة واحدة فقط
-  */
-
-  image.src =
-    url;
-
-}
 
 
   /* =========================================================
