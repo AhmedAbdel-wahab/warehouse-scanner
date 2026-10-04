@@ -1,520 +1,328 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
-
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <title>Warehouse Barcode Scanner</title>
 
-  <title>Warehouse Scanner</title>
-
-  <!-- ZXing Browser -->
-  <script
-    type="text/javascript"
-    src="https://unpkg.com/@zxing/browser@latest">
-  </script>
-
+  <script src="https://unpkg.com/@zxing/browser@latest"></script>
 
   <style>
-
     * {
       box-sizing: border-box;
     }
 
     body {
-
       margin: 0;
-
-      padding: 20px;
-
-      background: #111827;
-
-      color: white;
-
+      padding: 15px;
+      background: #111;
+      color: #fff;
       font-family: Arial, sans-serif;
-
       text-align: center;
-
     }
 
-
-    .container {
-
-      width: 100%;
-
-      max-width: 800px;
-
-      margin: auto;
-
+    h2 {
+      margin: 5px 0 15px;
     }
 
-
-    h1 {
-
-      margin-bottom: 5px;
-
-    }
-
-
-    .subtitle {
-
-      color: #cbd5e1;
-
-      margin-bottom: 15px;
-
-    }
-
-
-    .status {
-
-      background: #1f2937;
-
-      border-radius: 12px;
-
-      padding: 14px;
-
-      margin: 15px 0;
-
-      white-space: pre-line;
-
-    }
-
-
-    .status.success {
-
-      border: 2px solid #22c55e;
-
-      color: #86efac;
-
-    }
-
-
-    .status.error {
-
-      border: 2px solid #ef4444;
-
-      color: #fca5a5;
-
-    }
-
-
-    .camera-box {
-
+    #cameraBox {
       position: relative;
-
       width: 100%;
-
+      max-width: 900px;
+      margin: auto;
       background: #000;
-
-      border-radius: 15px;
-
       overflow: hidden;
-
-      margin: 15px auto;
-
+      border-radius: 12px;
     }
-
 
     video {
-
       width: 100%;
-
       height: auto;
-
-      min-height: 300px;
-
       display: block;
 
-      background: #000;
-
-      object-fit: cover;
-
+      /* عكس الصورة للمستخدم */
+      transform: scaleX(-1);
     }
 
-
-    .scan-frame {
-
+    /* إطار القراءة */
+    #scanFrame {
       position: absolute;
+      left: 15%;
+      right: 15%;
+      top: 30%;
+      height: 40%;
 
-      top: 50%;
-
-      left: 50%;
-
-      transform: translate(-50%, -50%);
-
-      width: 85%;
-
-      height: 180px;
-
-      border: 3px solid white;
-
-      border-radius: 12px;
+      border: 3px solid #00ff66;
+      border-radius: 10px;
 
       pointer-events: none;
-
     }
 
+    #scanLine {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
 
-    button {
+      height: 2px;
+      background: red;
 
-      border: 0;
+      box-shadow: 0 0 8px red;
 
-      border-radius: 10px;
-
-      padding: 14px 22px;
-
-      font-size: 17px;
-
-      cursor: pointer;
-
-      margin: 5px;
-
+      animation: scanMove 2s infinite;
     }
 
+    @keyframes scanMove {
+      0% {
+        top: 10%;
+      }
 
-    #startBtn {
+      50% {
+        top: 90%;
+      }
 
-      background: #16a34a;
-
-      color: white;
-
+      100% {
+        top: 10%;
+      }
     }
-
-
-    #stopBtn {
-
-      background: #dc2626;
-
-      color: white;
-
-    }
-
-
-    button:active {
-
-      transform: scale(0.97);
-
-    }
-
-
-    .result {
-
-      background: #0f172a;
-
-      border: 2px solid #334155;
-
-      border-radius: 12px;
-
-      padding: 18px;
-
-      margin-top: 15px;
-
-      font-size: 22px;
-
-      word-break: break-all;
-
-    }
-
-
-    .result.success {
-
-      border-color: #22c55e;
-
-      color: #86efac;
-
-    }
-
 
     .info {
-
-      margin-top: 20px;
-
+      max-width: 900px;
+      margin: 12px auto;
       padding: 12px;
-
-      background: #1e293b;
-
+      background: #222;
       border-radius: 10px;
-
-      color: #cbd5e1;
-
-      font-size: 14px;
-
-      line-height: 1.7;
-
+      text-align: right;
     }
 
+    #status {
+      font-size: 18px;
+      font-weight: bold;
+    }
 
-    .camera-info {
-
+    #result {
       margin-top: 10px;
-
-      color: #94a3b8;
-
-      font-size: 13px;
-
-    }
-
-
-    .debug {
-
-      margin-top: 15px;
-
-      padding: 10px;
-
-      background: #020617;
-
-      border-radius: 10px;
-
-      color: #94a3b8;
-
-      font-size: 12px;
-
+      padding: 12px;
+      background: #000;
+      border-radius: 8px;
+      font-size: 20px;
       direction: ltr;
-
-      text-align: left;
-
+      text-align: center;
       word-break: break-all;
-
     }
 
+    #debug {
+      margin-top: 10px;
+      color: #aaa;
+      font-size: 13px;
+      direction: ltr;
+      text-align: left;
+      white-space: pre-wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 12px 18px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #startBtn {
+      background: #0a7cff;
+      color: white;
+    }
+
+    #stopBtn {
+      background: #d33;
+      color: white;
+    }
+
+    #captureBtn {
+      background: #16a34a;
+      color: white;
+    }
+
+    canvas {
+      display: none;
+    }
+
+    #capturedImage {
+      display: none;
+      width: 100%;
+      max-width: 900px;
+      margin: 15px auto;
+      border-radius: 10px;
+      border: 2px solid #555;
+    }
+
+    .small {
+      color: #aaa;
+      font-size: 13px;
+      margin-top: 8px;
+    }
   </style>
-
 </head>
-
 
 <body>
 
+  <h2>📷 Barcode Scanner</h2>
 
-<div class="container">
-
-
-  <h1>
-    📷 Warehouse Scanner
-  </h1>
-
-
-  <div class="subtitle">
-    Multi-Format Barcode / QR Scanner
-  </div>
-
-
-  <div
-    id="status"
-    class="status"
-  >
-    اضغط "تشغيل الكاميرا" للبدء.
-  </div>
-
-
-  <div class="camera-box">
+  <div id="cameraBox">
 
     <video
       id="video"
       autoplay
       muted
-      playsinline
-    ></video>
+      playsinline>
+    </video>
 
-    <div class="scan-frame"></div>
+    <div id="scanFrame">
+      <div id="scanLine"></div>
+    </div>
 
   </div>
 
+  <div class="info">
 
-  <div
-    id="cameraInfo"
-    class="camera-info"
-  ></div>
+    <div id="status">
+      ⏳ جاري تشغيل الكاميرا...
+    </div>
 
+    <div class="small">
+      وجّه الـ Barcode داخل الإطار الأخضر
+    </div>
+
+    <div id="result">
+      لا يوجد Barcode
+    </div>
+
+    <div id="cameraInfo" class="small">
+      -
+    </div>
+
+    <div id="debug">
+      -
+    </div>
+
+  </div>
 
   <div>
 
     <button id="startBtn">
-      📷 تشغيل الكاميرا
+      ▶ تشغيل الكاميرا
     </button>
 
+    <button id="captureBtn">
+      📸 التقاط وفحص
+    </button>
 
     <button id="stopBtn">
-      ⛔ إيقاف
+      ⏹ إيقاف
     </button>
 
   </div>
 
+  <canvas id="canvas"></canvas>
 
-  <div
-    id="result"
-    class="result"
-  >
-    لم يتم قراءة Barcode بعد
-  </div>
+  <img
+    id="capturedImage"
+    alt="Captured frame">
 
+  <script>
 
-  <div class="info">
+    let codeReader = null;
+    let controls = null;
 
-    ضع الباركود داخل المربع الأبيض.
+    let video = null;
+    let canvas = null;
+    let capturedImage = null;
 
-    <br>
+    let scanning = false;
 
-    يدعم QR و EAN و UPC و Code 128 و Code 39
-    وغيرها من الصيغ التي يدعمها ZXing.
+    const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
+    const cameraInfoEl = document.getElementById("cameraInfo");
+    const debugEl = document.getElementById("debug");
 
-  </div>
-
-
-  <div
-    id="debug"
-    class="debug"
-  >
-    Scanner: Waiting...
-  </div>
+    video = document.getElementById("video");
+    canvas = document.getElementById("canvas");
+    capturedImage = document.getElementById("capturedImage");
 
 
-</div>
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
 
 
-<script>
+    function setDebug(text) {
+      debugEl.textContent = text;
+    }
 
 
-let codeReader = null;
+    function showResult(value, format) {
 
-let scanning = false;
-
-let controls = null;
-
-
-const video =
-  document.getElementById("video");
-
-
-const statusBox =
-  document.getElementById("status");
-
-
-const resultBox =
-  document.getElementById("result");
-
-
-const cameraInfo =
-  document.getElementById("cameraInfo");
-
-
-const debugBox =
-  document.getElementById("debug");
-
-
-
-function setStatus(
-  message,
-  type = ""
-) {
-
-  statusBox.textContent =
-    message;
-
-  statusBox.className =
-    "status";
-
-
-  if (type === "success") {
-
-    statusBox.classList.add(
-      "success"
-    );
-
-  }
-
-
-  if (type === "error") {
-
-    statusBox.classList.add(
-      "error"
-    );
-
-  }
-
-}
-
-
-
-/*
-  تشغيل الكاميرا
-*/
-
-async function startCamera() {
-
-  try {
-
-
-    stopCamera();
-
-
-    resultBox.textContent =
-      "🔎 جاري البحث عن Barcode...";
-
-
-    resultBox.className =
-      "result";
-
-
-    debugBox.textContent =
-      "Scanner: starting...";
-
-
-    setStatus(
-      "جاري تشغيل الكاميرا..."
-    );
-
-
-    if (!window.isSecureContext) {
-
-      throw new Error(
-        "الصفحة ليست HTTPS."
-      );
+      resultEl.innerHTML =
+        "✅ <b>" +
+        escapeHtml(value) +
+        "</b>" +
+        (format
+          ? "<br><small>Format: " +
+            escapeHtml(String(format)) +
+            "</small>"
+          : "");
 
     }
 
 
-    if (
-      typeof ZXingBrowser ===
-      "undefined"
-    ) {
+    function escapeHtml(text) {
 
-      throw new Error(
-        "ZXingBrowser غير موجود."
-      );
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 
     }
 
 
-    /*
-      Multi Format Reader
-    */
+    async function startCamera() {
 
-    codeReader =
-      new ZXingBrowser.BrowserMultiFormatReader();
+      try {
+
+        stopCamera();
+
+        setStatus("⏳ جاري تشغيل الكاميرا...");
+
+        resultEl.textContent = "لا يوجد Barcode";
+
+        setDebug("Initializing ZXing...");
+
+        if (
+          typeof ZXingBrowser === "undefined"
+        ) {
+
+          throw new Error(
+            "ZXingBrowser غير موجود. تأكد من تحميل مكتبة ZXing."
+          );
+
+        }
 
 
-    scanning = true;
+        codeReader =
+          new ZXingBrowser.BrowserMultiFormatReader();
 
 
-    setStatus(
-      "📷 الكاميرا تعمل.\n" +
-      "وجّه الباركود داخل المربع الأبيض."
-    );
+        setDebug(
+          "ZXing loaded.\n" +
+          "Starting camera..."
+        );
 
 
-    /*
-      تشغيل الكاميرا
-    */
-
-    controls =
-      await codeReader.decodeFromConstraints(
-
-        {
+        const constraints = {
 
           video: {
 
@@ -541,397 +349,481 @@ async function startCamera() {
 
           audio: false
 
-        },
+        };
 
 
-        video,
+        controls =
+          await codeReader.decodeFromConstraints(
+
+            constraints,
+
+            video,
+
+            (result, error, callbackControls) => {
+
+              if (result) {
+
+                const text =
+                  result.getText();
+
+                let format = "";
+
+                try {
+
+                  format =
+                    result
+                      .getBarcodeFormat()
+                      .toString();
+
+                } catch (e) {
+
+                  format = "";
+
+                }
 
 
-        (
-          result,
-          error,
-          callbackControls
-        ) => {
+                showResult(
+                  text,
+                  format
+                );
 
 
-          /*
-            Barcode found
-          */
-
-          if (result) {
-
-            const text =
-              result.getText();
+                setStatus(
+                  "✅ تم اكتشاف Barcode!"
+                );
 
 
-            const format =
-              result.getBarcodeFormat();
+                setDebug(
+                  "Barcode Found!\n" +
+                  "Value: " +
+                  text +
+                  "\n" +
+                  "Format: " +
+                  format
+                );
 
 
-            console.log(
-              "BARCODE FOUND:",
-              text
-            );
+                /*
+                 * إرسال القيمة إلى الصفحة الرئيسية
+                 * لو الصفحة الرئيسية تستخدم postMessage
+                 */
+                try {
+
+                  window.parent.postMessage(
+
+                    {
+                      type: "barcode",
+                      barcode: text
+                    },
+
+                    "*"
+
+                  );
+
+                } catch (e) {}
+
+              }
+
+              else {
+
+                if (scanning) {
+
+                  setStatus(
+                    "📷 الكاميرا تعمل. Scanning..."
+                  );
+
+                }
+
+              }
+
+            }
+
+          );
 
 
-            console.log(
-              "FORMAT:",
-              format
-            );
+        scanning = true;
 
 
-            debugBox.textContent =
-              "FOUND → " +
-              text +
-              " | FORMAT → " +
-              format;
+        /*
+         * معلومات الكاميرا
+         */
 
+        setTimeout(() => {
 
-            handleBarcode(
-              text,
-              format
-            );
+          try {
 
+            const stream =
+              video.srcObject;
 
-            return;
+            if (
+              stream &&
+              stream.getVideoTracks().length
+            ) {
+
+              const track =
+                stream.getVideoTracks()[0];
+
+              const settings =
+                track.getSettings();
+
+              cameraInfoEl.textContent =
+                "الكاميرا: " +
+                (track.label || "Unknown") +
+                " | الدقة: " +
+                (settings.width || "?") +
+                " × " +
+                (settings.height || "?");
+
+              setDebug(
+                "Scanning...\n\n" +
+                "Camera: " +
+                (track.label || "Unknown") +
+                "\n" +
+                "Resolution: " +
+                (settings.width || "?") +
+                " x " +
+                (settings.height || "?") +
+                "\n" +
+                "Facing: " +
+                (settings.facingMode || "unknown")
+              );
+
+            }
+
+          } catch (e) {
+
+            console.log(e);
 
           }
 
+        }, 1000);
 
-          /*
-            أخطاء القراءة العادية
-            لا نعرضها للمستخدم.
-          */
 
-          if (error) {
+      } catch (error) {
 
-            debugBox.textContent =
-              "Scanning...";
+        console.error(error);
 
-          }
+        scanning = false;
+
+        setStatus(
+          "❌ فشل تشغيل الكاميرا"
+        );
+
+        setDebug(
+          "ERROR:\n" +
+          (error.message || error)
+        );
+
+      }
+
+    }
+
+
+    function captureAndDecode() {
+
+      try {
+
+        if (
+          !video ||
+          video.readyState < 2
+        ) {
+
+          setStatus(
+            "❌ الكاميرا لم تصبح جاهزة بعد."
+          );
+
+          return;
 
         }
 
+
+        const width =
+          video.videoWidth;
+
+        const height =
+          video.videoHeight;
+
+
+        if (!width || !height) {
+
+          setStatus(
+            "❌ لا توجد صورة من الكاميرا."
+          );
+
+          return;
+
+        }
+
+
+        canvas.width = width;
+        canvas.height = height;
+
+
+        const ctx =
+          canvas.getContext("2d");
+
+
+        /*
+         * نأخذ الصورة الأصلية بدون Mirror
+         * لأن ZXing يجب أن يفحص الصورة الأصلية.
+         */
+
+        ctx.drawImage(
+          video,
+          0,
+          0,
+          width,
+          height
+        );
+
+
+        const imageData =
+          canvas.toDataURL(
+            "image/png"
+          );
+
+
+        capturedImage.src =
+          imageData;
+
+        capturedImage.style.display =
+          "block";
+
+
+        setStatus(
+          "🔎 جاري فحص الصورة..."
+        );
+
+
+        setDebug(
+          "Captured frame:\n" +
+          width +
+          " x " +
+          height +
+          "\nTrying ZXing decode..."
+        );
+
+
+        /*
+         * إنشاء Image مؤقتة
+         */
+
+        const img =
+          new Image();
+
+
+        img.onload = async function() {
+
+          try {
+
+            const reader =
+              new ZXingBrowser.BrowserMultiFormatReader();
+
+
+            const result =
+              await reader.decodeFromImageElement(
+                img
+              );
+
+
+            if (result) {
+
+              const value =
+                result.getText();
+
+              let format = "";
+
+              try {
+
+                format =
+                  result
+                    .getBarcodeFormat()
+                    .toString();
+
+              } catch (e) {}
+
+
+              showResult(
+                value,
+                format
+              );
+
+
+              setStatus(
+                "✅ تم اكتشاف Barcode من الصورة!"
+              );
+
+
+              setDebug(
+                "IMAGE DECODE SUCCESS\n\n" +
+                "Value: " +
+                value +
+                "\n" +
+                "Format: " +
+                format
+              );
+
+
+              try {
+
+                window.parent.postMessage(
+
+                  {
+                    type: "barcode",
+                    barcode: value
+                  },
+
+                  "*"
+
+                );
+
+              } catch (e) {}
+
+            }
+
+          } catch (error) {
+
+            console.error(error);
+
+            setStatus(
+              "⚠️ الصورة اتصورت لكن لم يتم العثور على Barcode."
+            );
+
+
+            setDebug(
+              "IMAGE DECODE FAILED\n\n" +
+              (error.message || error)
+            );
+
+          }
+
+        };
+
+
+        img.onerror = function() {
+
+          setStatus(
+            "❌ فشل تحميل الصورة."
+          );
+
+        };
+
+
+        img.src = imageData;
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        setStatus(
+          "❌ حدث خطأ أثناء التقاط الصورة."
+        );
+
+        setDebug(
+          "CAPTURE ERROR:\n" +
+          (error.message || error)
+        );
+
+      }
+
+    }
+
+
+    function stopCamera() {
+
+      scanning = false;
+
+
+      try {
+
+        if (controls) {
+
+          controls.stop();
+          controls = null;
+
+        }
+
+      } catch (e) {}
+
+
+      try {
+
+        if (codeReader) {
+
+          codeReader.reset();
+
+        }
+
+      } catch (e) {}
+
+
+      try {
+
+        if (video.srcObject) {
+
+          const tracks =
+            video.srcObject.getTracks();
+
+          tracks.forEach(
+            track => track.stop()
+          );
+
+          video.srcObject = null;
+
+        }
+
+      } catch (e) {}
+
+
+      setStatus(
+        "⏹ الكاميرا متوقفة"
+      );
+
+    }
+
+
+    document
+      .getElementById("startBtn")
+      .addEventListener(
+        "click",
+        startCamera
+      );
+
+
+    document
+      .getElementById("stopBtn")
+      .addEventListener(
+        "click",
+        stopCamera
+      );
+
+
+    document
+      .getElementById("captureBtn")
+      .addEventListener(
+        "click",
+        captureAndDecode
       );
 
 
     /*
-      عرض معلومات الكاميرا
-    */
+     * تشغيل الكاميرا تلقائياً
+     */
 
-    setTimeout(
-      showCameraInfo,
-      1000
+    window.addEventListener(
+      "load",
+      () => {
+
+        setTimeout(
+          startCamera,
+          500
+        );
+
+      }
     );
 
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "Scanner Error:",
-      error
-    );
-
-
-    scanning = false;
-
-
-    let message =
-      "❌ فشل تشغيل الكاميرا.";
-
-
-    if (
-      error.name ===
-      "NotAllowedError"
-    ) {
-
-      message =
-        "❌ تم رفض إذن الكاميرا.";
-
-    }
-
-
-    else if (
-      error.name ===
-      "NotFoundError"
-    ) {
-
-      message =
-        "❌ لم يتم العثور على كاميرا.";
-
-    }
-
-
-    else if (
-      error.name ===
-      "NotReadableError"
-    ) {
-
-      message =
-        "❌ الكاميرا مستخدمة بواسطة برنامج آخر.";
-
-    }
-
-
-    else if (error.message) {
-
-      message +=
-        "\n" +
-        error.message;
-
-    }
-
-
-    setStatus(
-      message,
-      "error"
-    );
-
-  }
-
-}
-
-
-
-/*
-  معلومات الكاميرا
-*/
-
-function showCameraInfo() {
-
-  try {
-
-    if (
-      video.videoWidth &&
-      video.videoHeight
-    ) {
-
-      cameraInfo.textContent =
-        "دقة الكاميرا: " +
-        video.videoWidth +
-        " × " +
-        video.videoHeight;
-
-    }
-
-  }
-
-  catch (e) {
-
-    console.log(e);
-
-  }
-
-}
-
-
-
-/*
-  Barcode تم اكتشافه
-*/
-
-function handleBarcode(
-  value,
-  format
-) {
-
-
-  if (!value) {
-
-    return;
-
-  }
-
-
-  if (!scanning) {
-
-    return;
-
-  }
-
-
-  scanning = false;
-
-
-  resultBox.textContent =
-    "✅ Barcode: " +
-    value +
-    "\n\n" +
-    "Format: " +
-    format;
-
-
-  resultBox.className =
-    "result success";
-
-
-  setStatus(
-    "✅ تم قراءة Barcode بنجاح!",
-    "success"
-  );
-
-
-  /*
-    نسخ الكود
-  */
-
-  if (
-    navigator.clipboard &&
-    window.isSecureContext
-  ) {
-
-    navigator.clipboard
-      .writeText(value)
-      .catch(() => {});
-
-  }
-
-
-  /*
-    إيقاف الكاميرا
-  */
-
-  setTimeout(
-    stopCamera,
-    300
-  );
-
-}
-
-
-
-/*
-  إيقاف الكاميرا
-*/
-
-function stopCamera() {
-
-
-  scanning = false;
-
-
-  if (controls) {
-
-    try {
-
-      controls.stop();
-
-    }
-
-    catch (e) {
-
-      console.log(e);
-
-    }
-
-    controls = null;
-
-  }
-
-
-  if (codeReader) {
-
-    try {
-
-      codeReader.reset();
-
-    }
-
-    catch (e) {
-
-      console.log(e);
-
-    }
-
-    codeReader = null;
-
-  }
-
-
-  if (video.srcObject) {
-
-    const tracks =
-      video.srcObject.getTracks();
-
-
-    tracks.forEach(
-      track => track.stop()
-    );
-
-
-    video.srcObject = null;
-
-  }
-
-
-  cameraInfo.textContent =
-    "";
-
-}
-
-
-
-/*
-  Start
-*/
-
-document
-  .getElementById("startBtn")
-  .addEventListener(
-    "click",
-    startCamera
-  );
-
-
-
-/*
-  Stop
-*/
-
-document
-  .getElementById("stopBtn")
-  .addEventListener(
-    "click",
-    () => {
-
-      stopCamera();
-
-
-      setStatus(
-        "تم إيقاف الكاميرا."
-      );
-
-
-      resultBox.textContent =
-        "لم يتم قراءة Barcode بعد";
-
-      resultBox.className =
-        "result";
-
-    }
-  );
-
-
-
-/*
-  Cleanup
-*/
-
-window.addEventListener(
-  "beforeunload",
-  () => {
-
-    stopCamera();
-
-  }
-);
-
-
-</script>
-
+  </script>
 
 </body>
-
 </html>
