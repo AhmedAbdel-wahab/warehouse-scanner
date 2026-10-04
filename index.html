@@ -198,8 +198,8 @@
 <div id="pinModal" class="modal" hidden>
   <div class="sheet">
     <h3>رمز الدخول (PIN)</h3>
-    <p id="pinMsg">اكتب الـ PIN مرة واحدة، وسيُحفظ على هذا الموبايل.</p>
-    <input id="pinInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="••••">
+    <p id="pinMsg"></p>
+    <input id="pinInput" type="tel" inputmode="numeric" maxlength="8" autocomplete="off" spellcheck="false" placeholder="••••••">
     <div class="row">
       <button id="pinSave">حفظ</button>
       <button id="pinCancel" class="ghost">إلغاء</button>
@@ -214,7 +214,6 @@
   const API_URL =
     "https://script.google.com/macros/s/AKfycbwD9w7udQcogxBpK0z69dTfs8CtSJz-fpa4JRbYUj_a3VtkmHGKaRd_va0rvIfXjaIRCw/exec";
 
-  const PIN_KEY = "wh_scanner_pin";
   const COOLDOWN_MS = 2500;   // تجاهل نفس الباركود خلال هذه المدة
   const HISTORY_MAX = 6;
 
@@ -246,44 +245,45 @@
 
 
   /* =========================================================
-     PIN (يُحفظ على الموبايل فقط)
+     PIN — الرقم الظاهر على شاشة اللاب.
+     يُحفظ في الذاكرة فقط، ويُطلب في كل مرة تفتح فيها الصفحة.
   ========================================================= */
-  function getPin() {
-    try { return localStorage.getItem(PIN_KEY) || ""; } catch (e) { return ""; }
-  }
-
-  function setPin(value) {
-    try {
-      if (value) localStorage.setItem(PIN_KEY, value);
-      else localStorage.removeItem(PIN_KEY);
-    } catch (e) {}
-  }
+  let pin = "";
+  let firstPrompt = true;
 
   function askPin(message, isError) {
     const msg = $("pinMsg");
-    msg.textContent = message || "اكتب الـ PIN مرة واحدة، وسيُحفظ على هذا الموبايل.";
+    msg.textContent = message || "اكتب الرقم الظاهر على شاشة اللاب (نافذة Mobile Scanner).";
     msg.className = isError ? "err" : "";
     $("pinInput").value = "";
     $("pinModal").hidden = false;
     setTimeout(() => $("pinInput").focus(), 50);
   }
 
-  $("pinBtn").onclick = () => askPin("اكتب الـ PIN الجديد.");
+  function closePinModal() {
+    $("pinModal").hidden = true;
+
+    if (firstPrompt) {
+      firstPrompt = false;
+      startCamera();
+    }
+  }
+
+  $("pinBtn").onclick = () => askPin("اكتب الـ PIN الجديد من شاشة اللاب.");
 
   $("pinCancel").onclick = () => {
-    $("pinModal").hidden = true;
     pendingAfterPin = null;
+    closePinModal();
   };
 
   $("pinSave").onclick = () => {
-    const value = $("pinInput").value.trim();
-    $("pinModal").hidden = true;
-    setPin(value);
+    pin = $("pinInput").value.trim();
+    closePinModal();
 
-    if (pendingAfterPin) {
+    if (pendingAfterPin && pin) {
       const code = pendingAfterPin;
       pendingAfterPin = null;
-      sendBarcode(code, history.find((h) => h.code === code));
+      sendBarcode(code, history.find((h) => h.code === code) || { code: code, state: "sending", time: "" });
     }
   };
 
@@ -306,7 +306,9 @@
       ok:      ["✅", "تم الإرسال"],
       sent:    ["📤", "أُرسل"],
       fail:    ["❌", "فشل الإرسال"],
-      auth:    ["🔒", "PIN غير صحيح"]
+      auth:    ["🔒", "PIN غير صحيح"],
+      nopin:   ["💻", "افتح برنامج اللاب"],
+      locked:  ["⛔", "مقفول مؤقتًا"]
     }[state] || ["", ""];
   }
 
@@ -372,8 +374,7 @@
   ========================================================= */
   function buildUrl(barcode) {
     let url = API_URL + "?action=scan&barcode=" + encodeURIComponent(barcode) + "&t=" + Date.now();
-    const pin = getPin();
-    if (pin) url += "&token=" + encodeURIComponent(pin);
+    url += "&token=" + encodeURIComponent(pin);
     return url;
   }
 
@@ -391,6 +392,8 @@
 
       if (text.startsWith("OK")) return "ok";
       if (text.includes("Unauthorized")) return "auth";
+      if (text.includes("NoPin")) return "nopin";
+      if (text.includes("Locked")) return "locked";
       return "fail";
 
     } catch (e) {
@@ -404,6 +407,17 @@
   }
 
   async function sendBarcode(barcode, item) {
+
+    /* لا نرسل قبل إدخال الـ PIN */
+    if (!pin) {
+      item.state = "auth";
+      renderHistory();
+      pendingAfterPin = barcode;
+      setStatus("warn", "اكتب الـ PIN لإرسال الباركود");
+      askPin();
+      return;
+    }
+
     item.state = "sending";
     renderHistory();
     setStatus("info", "جاري إرسال " + barcode + " …");
@@ -414,10 +428,19 @@
 
     if (result === "ok" || result === "sent") {
       setStatus("ready", "تم الإرسال: " + barcode);
+
     } else if (result === "auth") {
-      setStatus("error", "الـ PIN غير صحيح");
+      pin = "";
       pendingAfterPin = barcode;
-      askPin("الـ PIN غير صحيح. اكتبه من جديد.", true);
+      setStatus("error", "الـ PIN غير صحيح");
+      askPin("الـ PIN غير صحيح. تأكد من الرقم الظاهر على شاشة اللاب.", true);
+
+    } else if (result === "nopin") {
+      setStatus("error", "افتح برنامج المخزن على اللاب أولًا ليولّد PIN");
+
+    } else if (result === "locked") {
+      setStatus("error", "محاولات خاطئة كثيرة — انتظر 5 دقائق أو ولّد PIN جديد من اللاب");
+
     } else {
       setStatus("error", "تعذر الإرسال — تأكد من الإنترنت");
     }
@@ -592,7 +615,7 @@
 
   window.addEventListener("load", () => {
     renderHistory();
-    setTimeout(() => startCamera(), 300);
+    askPin();            // الكاميرا تبدأ بعد إدخال الـ PIN
   });
 </script>
 
