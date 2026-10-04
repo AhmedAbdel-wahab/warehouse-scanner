@@ -1,1014 +1,600 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
-
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>ماسح باركود المخزن</title>
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>
-    Warehouse Mobile Scanner
-  </title>
-
-  <script
-    src="https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js"
-  ></script>
-
+  <script src="https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
   <script>
-    /* لو unpkg فشل نحمل من jsDelivr */
+    /* لو unpkg فشل نحمّل من jsDelivr */
     if (typeof ZXingBrowser === "undefined") {
-      document.write(
-        '<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"><\/script>'
-      );
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"><\/script>');
     }
   </script>
 
   <style>
-
-    * {
-      box-sizing: border-box;
+    :root {
+      --bg: #0b1220;
+      --card: #141c2e;
+      --line: #243049;
+      --text: #f1f5f9;
+      --muted: #8b98b0;
+      --accent: #3b82f6;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --err: #ef4444;
     }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body { margin: 0; background: var(--bg); color: var(--text); }
 
     body {
-
-      margin: 0;
-
-      font-family:
-        Arial,
-        Tahoma,
-        sans-serif;
-
-      background: #111827;
-
-      color: white;
-
+      font-family: system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif;
       min-height: 100vh;
-
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
     }
 
+    .app { max-width: 560px; margin: 0 auto; padding: 14px; }
 
-    .container {
-
-      width: 100%;
-
-      max-width: 600px;
-
-      margin: auto;
-
-      padding: 15px;
-
-    }
-
-
-    h1 {
-
-      text-align: center;
-
-      font-size: 24px;
-
-      margin:
-        10px 0
-        15px;
-
-    }
-
-
-    .status {
-
-      background: #1f2937;
-
-      border-radius: 10px;
-
-      padding: 12px;
-
-      text-align: center;
-
-      line-height: 1.6;
-
+    /* ---------- header ---------- */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 12px;
+    }
+    header h1 { margin: 0; font-size: 19px; font-weight: 700; }
 
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 12px;
+      border: 1px solid var(--line); background: var(--card);
+      color: var(--text); font-size: 18px; cursor: pointer;
     }
 
-
-    .scanner-box {
-
-      position: relative;
-
-      width: 100%;
-
-      background: black;
-
-      border-radius: 15px;
-
-      overflow: hidden;
-
+    /* ---------- status ---------- */
+    .status {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; border-radius: 12px;
+      background: var(--card); border: 1px solid var(--line);
+      font-size: 14px; line-height: 1.5; margin-bottom: 12px;
     }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+    .status.ready .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    .status.info  .dot { background: var(--accent); }
+    .status.warn  .dot { background: var(--warn); }
+    .status.error .dot { background: var(--err); }
+    .status.error { border-color: rgba(239,68,68,.5); }
 
-
-    video {
-
-      display: block;
-
-      width: 100%;
-
-      height: auto;
-
-      min-height: 300px;
-
-      object-fit: cover;
-
-      background: black;
-
+    /* ---------- camera ---------- */
+    .camera {
+      position: relative; border-radius: 18px; overflow: hidden;
+      background: #000; aspect-ratio: 4 / 3; max-height: 55vh; width: 100%;
     }
+    video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-
-    .scan-frame {
-
-      position: absolute;
-
-      left: 10%;
-
-      right: 10%;
-
-      top: 25%;
-
-      height: 50%;
-
-      border:
-
-        3px solid
-        rgba(255,255,255,.8);
-
-      border-radius: 12px;
-
-      pointer-events: none;
-
+    .frame {
+      position: absolute; inset: 18% 10%;
+      pointer-events: none; transition: transform .15s;
     }
-
-
-    .scan-line {
-
-      position: absolute;
-
-      left: 12%;
-
-      right: 12%;
-
-      top: 50%;
-
-      height: 3px;
-
-      background: red;
-
-      box-shadow:
-        0 0 10px red;
-
-      pointer-events: none;
-
+    .frame i {
+      position: absolute; width: 28px; height: 28px;
+      border: 4px solid rgba(255,255,255,.9); transition: border-color .15s;
     }
+    .frame i:nth-child(1) { top: 0; left: 0;  border-right: 0; border-bottom: 0; border-top-left-radius: 10px; }
+    .frame i:nth-child(2) { top: 0; right: 0; border-left: 0;  border-bottom: 0; border-top-right-radius: 10px; }
+    .frame i:nth-child(3) { bottom: 0; left: 0;  border-right: 0; border-top: 0; border-bottom-left-radius: 10px; }
+    .frame i:nth-child(4) { bottom: 0; right: 0; border-left: 0;  border-top: 0; border-bottom-right-radius: 10px; }
 
-
-    .result {
-
-      margin-top: 12px;
-
-      background: #065f46;
-
-      border-radius: 10px;
-
-      padding: 15px;
-
-      text-align: center;
-
-      display: none;
-
+    .frame .laser {
+      position: absolute; left: 4%; right: 4%; top: 0; height: 2px;
+      background: var(--err); box-shadow: 0 0 10px var(--err);
+      animation: sweep 2.2s ease-in-out infinite alternate;
     }
+    @keyframes sweep { to { top: 100%; } }
+    @media (prefers-reduced-motion: reduce) { .frame .laser { animation: none; top: 50%; } }
 
+    .camera.off .frame { display: none; }
+    .camera.hit .frame i { border-color: var(--ok); }
+    .camera.hit .frame { transform: scale(1.03); }
 
-    .result.show {
-
-      display: block;
-
+    .camera .placeholder {
+      position: absolute; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      color: var(--muted); font-size: 15px; background: #05080f;
     }
+    .camera.off .placeholder { display: flex; }
 
-
-    .result-label {
-
-      font-size: 13px;
-
-      opacity: .9;
-
+    /* ---------- controls ---------- */
+    .controls { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; margin-top: 12px; }
+    .controls button {
+      border: 1px solid var(--line); background: var(--card); color: var(--text);
+      border-radius: 14px; padding: 12px 6px; font-size: 14px; font-weight: 600;
+      cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
+    .controls button span { font-size: 20px; line-height: 1; }
+    .controls button:active { transform: scale(.97); }
+    .controls button.primary { background: var(--accent); border-color: var(--accent); }
+    .controls button.on { background: var(--warn); border-color: var(--warn); color: #111; }
+    .controls button[hidden] { display: none; }
 
-
-    .result-value {
-
-      font-size: 25px;
-
-      font-weight: bold;
-
-      margin-top: 6px;
-
-      word-break: break-all;
-
+    /* ---------- history ---------- */
+    .history { margin-top: 16px; }
+    .history h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .history ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .history li {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 12px; padding: 10px 14px;
     }
+    .history li:first-child { padding: 14px; border-color: #35466a; }
+    .history .code { font-weight: 700; word-break: break-all; font-size: 15px; }
+    .history li:first-child .code { font-size: 20px; }
+    .history .meta { font-size: 12px; color: var(--muted); white-space: nowrap; text-align: left; }
+    .history .meta b { font-size: 15px; }
+    .history .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 14px; background: none; border-style: dashed; }
 
-
-    button {
-
-      width: 100%;
-
-      border: none;
-
-      border-radius: 10px;
-
-      padding: 14px;
-
-      margin-top: 10px;
-
-      font-size: 16px;
-
-      font-weight: bold;
-
-      cursor: pointer;
-
+    /* ---------- PIN modal ---------- */
+    .modal {
+      position: fixed; inset: 0; background: rgba(5,8,15,.8);
+      display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10;
     }
-
-
-    .btn-primary {
-
-      background: #2563eb;
-
-      color: white;
-
+    .modal[hidden] { display: none; }
+    .sheet {
+      width: 100%; max-width: 360px; background: var(--card);
+      border: 1px solid var(--line); border-radius: 18px; padding: 20px;
     }
-
-
-    .btn-light {
-
-      background: #e5e7eb;
-
-      color: #111827;
-
+    .sheet h3 { margin: 0 0 6px; font-size: 18px; }
+    .sheet p { margin: 0 0 14px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .sheet p.err { color: var(--err); }
+    .sheet input {
+      width: 100%; padding: 13px; font-size: 18px; text-align: center; letter-spacing: 3px;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line); border-radius: 12px; outline: none;
     }
-
-
-    .btn-danger {
-
-      background: #dc2626;
-
-      color: white;
-
+    .sheet input:focus { border-color: var(--accent); }
+    .sheet .row { display: flex; gap: 10px; margin-top: 12px; }
+    .sheet button {
+      flex: 1; padding: 13px; border-radius: 12px; border: 0;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      background: var(--accent); color: #fff;
     }
-
-
-    .info {
-
-      margin-top: 12px;
-
-      background: #1f2937;
-
-      border-radius: 10px;
-
-      padding: 12px;
-
-      font-size: 13px;
-
-      line-height: 1.8;
-
-    }
-
+    .sheet button.ghost { background: var(--line); color: var(--text); }
   </style>
-
 </head>
 
-
 <body>
+<div class="app">
 
-<div class="container">
+  <header>
+    <h1>📦 ماسح باركود المخزن</h1>
+    <button class="icon-btn" id="pinBtn" title="تغيير PIN" aria-label="تغيير PIN">🔑</button>
+  </header>
 
-  <h1>
-    📱 Warehouse Barcode Scanner <small style="font-size:12px;opacity:.6">v2</small>
-  </h1>
-
-
-  <div
-    id="status"
-    class="status"
-  >
-    جاري تجهيز Scanner...
+  <div id="status" class="status info">
+    <span class="dot"></span><span id="statusText">جاري التجهيز…</span>
   </div>
 
-
-  <div class="scanner-box">
-
-    <video
-      id="video"
-      autoplay
-      muted
-      playsinline
-    ></video>
-
-    <div class="scan-frame"></div>
-
-    <div class="scan-line"></div>
-
+  <div id="camera" class="camera off">
+    <video id="video" autoplay muted playsinline></video>
+    <div class="frame"><i></i><i></i><i></i><i></i><div class="laser"></div></div>
+    <div class="placeholder">الكاميرا متوقفة</div>
   </div>
 
-
-  <div
-    id="result"
-    class="result"
-  >
-
-    <div class="result-label">
-      آخر Barcode
-    </div>
-
-    <div
-      id="resultValue"
-      class="result-value"
-    >
-      ---
-    </div>
-
+  <div class="controls">
+    <button id="toggleBtn" class="primary"><span>📷</span>تشغيل</button>
+    <button id="switchBtn"><span>🔄</span>تبديل</button>
+    <button id="torchBtn" hidden><span>🔦</span>إضاءة</button>
   </div>
 
-
-  <button
-    class="btn-primary"
-    onclick="startScanner()"
-  >
-    📷 تشغيل / إعادة تشغيل الكاميرا
-  </button>
-
-
-  <button
-    class="btn-light"
-    onclick="switchCamera()"
-  >
-    🔄 تبديل الكاميرا
-  </button>
-
-
-  <button
-    class="btn-light"
-    onclick="handleBarcode('TEST-' + Date.now())"
-  >
-    🧪 إرسال باركود تجريبي
-  </button>
-
-
-  <button
-    class="btn-danger"
-    onclick="stopScanner()"
-  >
-    ⛔ إيقاف الكاميرا
-  </button>
-
-
-  <div class="info">
-
-    <b>طريقة الاستخدام:</b>
-
-    <br>
-
-    1. افتح البرنامج على اللاب.
-
-    <br>
-
-    2. افتح هذه الصفحة على الموبايل.
-
-    <br>
-
-    3. اسمح للصفحة باستخدام الكاميرا.
-
-    <br>
-
-    4. وجّه Barcode داخل المربع.
-
-    <br>
-
-    5. عند القراءة سيتم إرسال الرقم للاب تلقائيًا.
-
-  </div>
+  <section class="history">
+    <h2>آخر المسحات</h2>
+    <ul id="list"><li class="empty">لا توجد مسحات بعد</li></ul>
+  </section>
 
 </div>
 
+<!-- PIN -->
+<div id="pinModal" class="modal" hidden>
+  <div class="sheet">
+    <h3>رمز الدخول (PIN)</h3>
+    <p id="pinMsg">اكتب الـ PIN مرة واحدة، وسيُحفظ على هذا الموبايل.</p>
+    <input id="pinInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="••••">
+    <div class="row">
+      <button id="pinSave">حفظ</button>
+      <button id="pinCancel" class="ghost">إلغاء</button>
+    </div>
+  </div>
+</div>
 
 <script>
-
   /* =========================================================
      CONFIG
   ========================================================= */
-
-  const GOOGLE_SCRIPT_URL =
+  const API_URL =
     "https://script.google.com/macros/s/AKfycbwD9w7udQcogxBpK0z69dTfs8CtSJz-fpa4JRbYUj_a3VtkmHGKaRd_va0rvIfXjaIRCw/exec";
 
-
-  /* =========================================================
-     GLOBAL
-  ========================================================= */
-
-  let codeReader = null;
-
-  let currentStream = null;
-
-  let scannerRunning = false;
-
-  let cameras = [];
-
-  let currentCameraIndex = 0;
-
-  let lastScannedCode = "";
-
-  let lastScanTime = 0;
+  const PIN_KEY = "wh_scanner_pin";
+  const COOLDOWN_MS = 2500;   // تجاهل نفس الباركود خلال هذه المدة
+  const HISTORY_MAX = 6;
 
 
   /* =========================================================
-     DOM
+     STATE + DOM
   ========================================================= */
+  const $ = (id) => document.getElementById(id);
 
-  const video =
-    document.getElementById(
-      "video"
-    );
+  const video = $("video");
+  const cameraBox = $("camera");
+  const statusBox = $("status");
+  const statusText = $("statusText");
+  const list = $("list");
+  const toggleBtn = $("toggleBtn");
+  const switchBtn = $("switchBtn");
+  const torchBtn = $("torchBtn");
 
+  let reader = null;
+  let controls = null;
+  let running = false;
+  let devices = [];
+  let torchOn = false;
 
-  const status =
-    document.getElementById(
-      "status"
-    );
-
-
-  const result =
-    document.getElementById(
-      "result"
-    );
-
-
-  const resultValue =
-    document.getElementById(
-      "resultValue"
-    );
+  let lastCode = "";
+  let lastTime = 0;
+  let history = [];
+  let pendingAfterPin = null;
 
 
   /* =========================================================
-     START
+     PIN (يُحفظ على الموبايل فقط)
   ========================================================= */
+  function getPin() {
+    try { return localStorage.getItem(PIN_KEY) || ""; } catch (e) { return ""; }
+  }
 
-  window.addEventListener(
-    "load",
-    function() {
+  function setPin(value) {
+    try {
+      if (value) localStorage.setItem(PIN_KEY, value);
+      else localStorage.removeItem(PIN_KEY);
+    } catch (e) {}
+  }
 
-      setTimeout(
-        startScanner,
-        500
-      );
+  function askPin(message, isError) {
+    const msg = $("pinMsg");
+    msg.textContent = message || "اكتب الـ PIN مرة واحدة، وسيُحفظ على هذا الموبايل.";
+    msg.className = isError ? "err" : "";
+    $("pinInput").value = "";
+    $("pinModal").hidden = false;
+    setTimeout(() => $("pinInput").focus(), 50);
+  }
 
+  $("pinBtn").onclick = () => askPin("اكتب الـ PIN الجديد.");
+
+  $("pinCancel").onclick = () => {
+    $("pinModal").hidden = true;
+    pendingAfterPin = null;
+  };
+
+  $("pinSave").onclick = () => {
+    const value = $("pinInput").value.trim();
+    $("pinModal").hidden = true;
+    setPin(value);
+
+    if (pendingAfterPin) {
+      const code = pendingAfterPin;
+      pendingAfterPin = null;
+      sendBarcode(code, history.find((h) => h.code === code));
     }
-  );
+  };
+
+  $("pinInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $("pinSave").click();
+  });
 
 
   /* =========================================================
-     START SCANNER
+     UI HELPERS
   ========================================================= */
+  function setStatus(kind, text) {
+    statusBox.className = "status " + kind;
+    statusText.textContent = text;
+  }
 
-  async function startScanner() {
+  function stateLabel(state) {
+    return {
+      sending: ["⏳", "جاري الإرسال"],
+      ok:      ["✅", "تم الإرسال"],
+      sent:    ["📤", "أُرسل"],
+      fail:    ["❌", "فشل الإرسال"],
+      auth:    ["🔒", "PIN غير صحيح"]
+    }[state] || ["", ""];
+  }
+
+  function renderHistory() {
+    list.textContent = "";
+
+    if (!history.length) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "لا توجد مسحات بعد";
+      list.appendChild(li);
+      return;
+    }
+
+    history.forEach((item) => {
+      const li = document.createElement("li");
+
+      const code = document.createElement("div");
+      code.className = "code";
+      code.textContent = item.code;           // textContent لتفادي أي HTML داخل الباركود
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const [icon, label] = stateLabel(item.state);
+      const b = document.createElement("b");
+      b.textContent = icon + " ";
+      meta.appendChild(b);
+      meta.appendChild(document.createTextNode(label));
+      meta.appendChild(document.createElement("br"));
+      meta.appendChild(document.createTextNode(item.time));
+
+      li.appendChild(code);
+      li.appendChild(meta);
+      list.appendChild(li);
+    });
+  }
+
+  function feedback() {
+    cameraBox.classList.add("hit");
+    setTimeout(() => cameraBox.classList.remove("hit"), 400);
+
+    if (navigator.vibrate) navigator.vibrate(60);
 
     try {
-
-      scannerRunning = false;
-
-
-      stopCurrentStream();
-
-
-      status.textContent =
-        "🔄 جاري تشغيل الكاميرا...";
-
-
-      if (
-        typeof ZXingBrowser ===
-        "undefined"
-      ) {
-
-        throw new Error(
-          "ZXingBrowser لم يتم تحميله."
-        );
-
-      }
-
-
-      codeReader =
-        new ZXingBrowser.BrowserMultiFormatReader();
-
-
-      /*
-        الحصول على الكاميرات
-      */
-
-      cameras =
-        await ZXingBrowser.BrowserCodeReader
-          .listVideoInputDevices();
-
-
-      if (
-        !cameras ||
-        !cameras.length
-      ) {
-
-        throw new Error(
-          "لم يتم العثور على كاميرا."
-        );
-
-      }
-
-
-      /*
-        نختار الكاميرا الخلفية
-        إن أمكن.
-      */
-
-      let selectedCamera =
-        cameras.find(
-          function(camera) {
-
-            const label =
-              String(
-                camera.label || ""
-              ).toLowerCase();
-
-
-            return (
-              label.includes("back") ||
-              label.includes("rear") ||
-              label.includes("environment") ||
-              label.includes("خلف")
-            );
-
-          }
-        );
-
-
-      if (!selectedCamera) {
-
-        selectedCamera =
-          cameras[
-            currentCameraIndex %
-            cameras.length
-          ];
-
-      }
-
-
-      currentCameraIndex =
-        cameras.indexOf(
-          selectedCamera
-        );
-
-
-      status.textContent =
-        "📷 جاري تشغيل الكاميرا...";
-
-
-      scannerRunning = true;
-
-
-      /*
-        ZXing يبدأ القراءة
-      */
-
-      await codeReader.decodeFromVideoDevice(
-
-        selectedCamera.deviceId,
-
-        video,
-
-        function(
-          resultCode,
-          error
-        ) {
-
-          if (!scannerRunning) {
-            return;
-          }
-
-
-          if (resultCode) {
-
-            const text =
-              resultCode.getText();
-
-
-            if (text) {
-
-              handleBarcode(
-                text
-              );
-
-            }
-
-          }
-
-        }
-
-      );
-
-
-      status.textContent =
-        "🟢 الكاميرا تعمل. وجّه Barcode إلى المربع.";
-
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-
-      scannerRunning = false;
-
-
-      status.textContent =
-        "❌ تعذر تشغيل الكاميرا: " +
-        (
-          error.message ||
-          error
-        );
-
-    }
-
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = 1000;
+      gain.gain.value = 0.15;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+      setTimeout(() => ctx.close(), 300);
+    } catch (e) {}
   }
 
 
   /* =========================================================
-     BARCODE RECEIVED
+     SEND
   ========================================================= */
-
-  async function handleBarcode(
-    barcode
-  ) {
-
-    barcode =
-      String(
-        barcode || ""
-      ).trim();
-
-
-    if (!barcode) {
-      return;
-    }
-
-
-    /*
-      منع تكرار نفس Barcode
-      عدة مرات في نفس اللحظة.
-    */
-
-    const now =
-      Date.now();
-
-
-    if (
-      barcode ===
-      lastScannedCode &&
-      now - lastScanTime < 2000
-    ) {
-
-      return;
-
-    }
-
-
-    lastScannedCode =
-      barcode;
-
-
-    lastScanTime =
-      now;
-
-
-    resultValue.textContent =
-      barcode;
-
-
-    result.classList.add(
-      "show"
-    );
-
-
-    status.textContent =
-      "📤 تم قراءة Barcode: " +
-      barcode +
-      " — جاري إرساله للاب...";
-
-
-    /*
-      إرسال إلى Google Apps Script
-    */
-
-    sendBarcodeToLaptop(
-      barcode
-    );
-
+  function buildUrl(barcode) {
+    let url = API_URL + "?action=scan&barcode=" + encodeURIComponent(barcode) + "&t=" + Date.now();
+    const pin = getPin();
+    if (pin) url += "&token=" + encodeURIComponent(pin);
+    return url;
   }
 
-
-  /* =========================================================
-     SEND BARCODE
-  ========================================================= */
-
-  const SCANNER_TOKEN = "";
-
-
-  async function sendBarcodeToLaptop(barcode) {
-
-    barcode =
-      String(
-        barcode || ""
-      ).trim();
-
-
-    if (!barcode) {
-      return;
-    }
-
-
-    const separator =
-      GOOGLE_SCRIPT_URL.includes("?")
-        ? "&"
-        : "?";
-
-
-    let url =
-      GOOGLE_SCRIPT_URL +
-      separator +
-      "action=scan" +
-      "&barcode=" +
-      encodeURIComponent(
-        barcode
-      ) +
-      "&t=" +
-      Date.now();
-
-
-    if (SCANNER_TOKEN) {
-
-      url +=
-        "&token=" +
-        encodeURIComponent(
-          SCANNER_TOKEN
-        );
-
-    }
-
-
-    status.textContent =
-      "📤 جاري إرسال Barcode للاب...";
-
-
-    /*
-      طلب واحد فقط (fetch بدون CORS).
-      كان الكود القديم يرسل 3 طلبات
-      (fetch + iframe + image) فيتسجل
-      الباركود 3 مرات في الشيت.
-    */
+  /*
+    يرجع: ok | auth | fail | sent
+    - نحاول القراءة الفعلية للرد لنتأكد من نجاح الحفظ.
+    - لو المتصفح منع قراءة الرد نرسل بوضع no-cors (لا يمكن تأكيد النتيجة → sent).
+  */
+  async function postBarcode(barcode) {
+    const url = buildUrl(barcode);
 
     try {
+      const res = await fetch(url, { cache: "no-store", credentials: "omit" });
+      const text = (await res.text()).trim();
 
-      await fetch(url, {
-        method: "GET",
-        mode: "no-cors",
-        cache: "no-store",
-        credentials: "omit"
-      });
+      if (text.startsWith("OK")) return "ok";
+      if (text.includes("Unauthorized")) return "auth";
+      return "fail";
 
-      status.textContent =
-        "✅ تم إرسال Barcode للاب: " +
-        barcode;
-
-    } catch (error) {
-
-      console.error(
-        "fetch send error:",
-        error
-      );
-
-      status.textContent =
-        "❌ فشل إرسال Barcode للاب — تأكد من الإنترنت";
-
+    } catch (e) {
+      try {
+        await fetch(url, { mode: "no-cors", cache: "no-store", credentials: "omit" });
+        return "sent";
+      } catch (e2) {
+        return "fail";
+      }
     }
+  }
 
+  async function sendBarcode(barcode, item) {
+    item.state = "sending";
+    renderHistory();
+    setStatus("info", "جاري إرسال " + barcode + " …");
+
+    const result = await postBarcode(barcode);
+    item.state = result;
+    renderHistory();
+
+    if (result === "ok" || result === "sent") {
+      setStatus("ready", "تم الإرسال: " + barcode);
+    } else if (result === "auth") {
+      setStatus("error", "الـ PIN غير صحيح");
+      pendingAfterPin = barcode;
+      askPin("الـ PIN غير صحيح. اكتبه من جديد.", true);
+    } else {
+      setStatus("error", "تعذر الإرسال — تأكد من الإنترنت");
+    }
   }
 
 
   /* =========================================================
-     SWITCH CAMERA
+     SCAN
   ========================================================= */
+  function onScan(raw) {
+    const code = String(raw || "").trim();
+    if (!code) return;
+
+    const now = Date.now();
+    if (code === lastCode && now - lastTime < COOLDOWN_MS) return;
+
+    lastCode = code;
+    lastTime = now;
+
+    feedback();
+
+    const item = {
+      code: code,
+      state: "sending",
+      time: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    };
+
+    history.unshift(item);
+    history = history.slice(0, HISTORY_MAX);
+
+    sendBarcode(code, item);
+  }
+
+
+  /* =========================================================
+     CAMERA
+  ========================================================= */
+  function currentTrack() {
+    const stream = video.srcObject;
+    return stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+  }
+
+  async function stopCamera() {
+    running = false;
+
+    try { if (controls && controls.stop) controls.stop(); } catch (e) {}
+    try { if (reader && reader.reset) reader.reset(); } catch (e) {}
+    controls = null;
+
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach((t) => t.stop());
+      video.srcObject = null;
+    }
+
+    torchOn = false;
+    torchBtn.classList.remove("on");
+    torchBtn.hidden = true;
+    cameraBox.classList.add("off");
+
+    toggleBtn.innerHTML = "<span>📷</span>تشغيل";
+    toggleBtn.classList.add("primary");
+  }
+
+  async function startCamera(deviceId) {
+    await stopCamera();
+    setStatus("info", "جاري تشغيل الكاميرا…");
+
+    if (typeof ZXingBrowser === "undefined") {
+      setStatus("error", "تعذر تحميل مكتبة القراءة — تأكد من الإنترنت ثم أعد فتح الصفحة");
+      return;
+    }
+
+    try {
+      reader = new ZXingBrowser.BrowserMultiFormatReader();
+
+      const callback = (result) => { if (result) onScan(result.getText()); };
+
+      if (deviceId) {
+        controls = await reader.decodeFromVideoDevice(deviceId, video, callback);
+      } else {
+        controls = await reader.decodeFromConstraints(
+          { video: { facingMode: { ideal: "environment" } } },
+          video,
+          callback
+        );
+      }
+
+      running = true;
+      cameraBox.classList.remove("off");
+      toggleBtn.innerHTML = "<span>⏹</span>إيقاف";
+      toggleBtn.classList.remove("primary");
+
+      /* بعد منح الإذن تظهر أسماء الكاميرات */
+      try {
+        devices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
+      } catch (e) { devices = []; }
+
+      setupTorch();
+      setStatus("ready", "الكاميرا تعمل — وجّه الباركود داخل الإطار");
+
+    } catch (error) {
+      console.error(error);
+      await stopCamera();
+
+      const name = error && error.name;
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setStatus("error", "الكاميرا غير مسموحة — اسمح بها من إعدادات المتصفح ثم أعد المحاولة");
+      } else if (name === "NotFoundError") {
+        setStatus("error", "لم يتم العثور على كاميرا");
+      } else {
+        setStatus("error", "تعذر تشغيل الكاميرا: " + ((error && error.message) || error));
+      }
+    }
+  }
 
   async function switchCamera() {
-
-    if (
-      !cameras ||
-      cameras.length < 2
-    ) {
-
-      status.textContent =
-        "⚠️ لا توجد كاميرا أخرى متاحة.";
-
+    if (!devices || devices.length < 2) {
+      setStatus("warn", "لا توجد كاميرا أخرى متاحة");
       return;
-
     }
 
+    const track = currentTrack();
+    const activeId = track && track.getSettings ? track.getSettings().deviceId : "";
+    let index = devices.findIndex((d) => d.deviceId === activeId);
+    index = (index + 1) % devices.length;
 
-    currentCameraIndex =
-      (
-        currentCameraIndex +
-        1
-      ) %
-      cameras.length;
+    await startCamera(devices[index].deviceId);
+  }
 
-
-    const camera =
-      cameras[
-        currentCameraIndex
-      ];
-
-
-    status.textContent =
-      "🔄 جاري تبديل الكاميرا...";
-
+  function setupTorch() {
+    const track = currentTrack();
+    let supported = false;
 
     try {
+      const caps = track && track.getCapabilities ? track.getCapabilities() : null;
+      supported = !!(caps && caps.torch);
+    } catch (e) {}
 
-      scannerRunning = false;
+    torchBtn.hidden = !supported;
+  }
 
+  async function toggleTorch() {
+    const track = currentTrack();
+    if (!track) return;
 
-      stopCurrentStream();
-
-
-      if (codeReader) {
-
-        try {
-
-          codeReader.reset();
-
-        } catch (e) {}
-
-      }
-
-
-      codeReader =
-        new ZXingBrowser.BrowserMultiFormatReader();
-
-
-      scannerRunning = true;
-
-
-      await codeReader.decodeFromVideoDevice(
-
-        camera.deviceId,
-
-        video,
-
-        function(
-          resultCode,
-          error
-        ) {
-
-          if (!scannerRunning) {
-            return;
-          }
-
-
-          if (resultCode) {
-
-            const text =
-              resultCode.getText();
-
-
-            if (text) {
-
-              handleBarcode(
-                text
-              );
-
-            }
-
-          }
-
-        }
-
-      );
-
-
-      status.textContent =
-        "🟢 تم تبديل الكاميرا.";
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-
-      status.textContent =
-        "❌ تعذر تبديل الكاميرا.";
-
+    try {
+      torchOn = !torchOn;
+      await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+      torchBtn.classList.toggle("on", torchOn);
+    } catch (e) {
+      torchOn = false;
+      torchBtn.classList.remove("on");
+      setStatus("warn", "الإضاءة غير مدعومة على هذه الكاميرا");
     }
-
   }
 
 
   /* =========================================================
-     STOP
+     EVENTS
   ========================================================= */
+  toggleBtn.onclick = () => (running ? (stopCamera(), setStatus("warn", "الكاميرا متوقفة")) : startCamera());
+  switchBtn.onclick = switchCamera;
+  torchBtn.onclick = toggleTorch;
 
-  function stopScanner() {
-
-    scannerRunning =
-      false;
-
-
-    if (codeReader) {
-
-      try {
-
-        codeReader.reset();
-
-      } catch (e) {}
-
+  /* إيقاف الكاميرا عند مغادرة الصفحة لتوفير البطارية */
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && running) {
+      stopCamera();
+      setStatus("warn", "تم إيقاف الكاميرا — اضغط تشغيل للمتابعة");
     }
+  });
 
-
-    stopCurrentStream();
-
-
-    status.textContent =
-      "⛔ تم إيقاف الكاميرا.";
-
-  }
-
-
-  /* =========================================================
-     STOP STREAM
-  ========================================================= */
-
-  function stopCurrentStream() {
-
-    if (
-      currentStream
-    ) {
-
-      currentStream
-        .getTracks()
-        .forEach(
-          function(track) {
-
-            track.stop();
-
-          }
-        );
-
-
-      currentStream =
-        null;
-
-    }
-
-
-    if (
-      video.srcObject
-    ) {
-
-      const tracks =
-        video.srcObject
-          .getTracks();
-
-
-      tracks.forEach(
-        function(track) {
-
-          track.stop();
-
-        }
-      );
-
-
-      video.srcObject =
-        null;
-
-    }
-
-  }
-
+  window.addEventListener("load", () => {
+    renderHistory();
+    setTimeout(() => startCamera(), 300);
+  });
 </script>
 
 </body>
-
 </html>
