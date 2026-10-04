@@ -1,4 +1,4 @@
-```html
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
@@ -13,9 +13,12 @@
 
   <title>Warehouse Scanner</title>
 
-  <!-- ZXing Barcode Scanner -->
-<!-- loading ZXingBrowser via UNPKG -->
-<script type="text/javascript" src="https://unpkg.com/@zxing/browser@latest"></script>
+  <!-- ZXing -->
+  <script
+    type="text/javascript"
+    src="https://unpkg.com/@zxing/browser@latest">
+  </script>
+
 
   <style>
 
@@ -24,10 +27,13 @@
     }
 
     body {
+
       margin: 0;
+
       padding: 20px;
 
       background: #111827;
+
       color: white;
 
       font-family: Arial, sans-serif;
@@ -35,23 +41,33 @@
       text-align: center;
     }
 
+
     .container {
+
       width: 100%;
-      max-width: 650px;
+
+      max-width: 700px;
 
       margin: auto;
     }
 
+
     h1 {
-      margin-bottom: 10px;
+
+      margin-bottom: 5px;
     }
 
+
     .subtitle {
+
       color: #cbd5e1;
+
       margin-bottom: 15px;
     }
 
+
     .status {
+
       background: #1f2937;
 
       border-radius: 12px;
@@ -61,19 +77,31 @@
       margin: 15px 0;
 
       white-space: pre-line;
+
+      font-size: 16px;
     }
 
+
     .status.success {
+
       border: 2px solid #22c55e;
+
       color: #86efac;
     }
 
+
     .status.error {
+
       border: 2px solid #ef4444;
+
       color: #fca5a5;
     }
 
+
     .camera-box {
+
+      position: relative;
+
       width: 100%;
 
       background: #000;
@@ -85,17 +113,48 @@
       margin: 15px auto;
     }
 
+
     video {
+
       width: 100%;
+
+      height: auto;
+
+      min-height: 300px;
 
       display: block;
 
       background: #000;
 
-      min-height: 250px;
-
       object-fit: cover;
     }
+
+
+    /*
+      مربع إرشادي للباركود
+    */
+
+    .scan-frame {
+
+      position: absolute;
+
+      top: 50%;
+
+      left: 50%;
+
+      transform: translate(-50%, -50%);
+
+      width: 75%;
+
+      height: 130px;
+
+      border: 3px solid white;
+
+      border-radius: 12px;
+
+      pointer-events: none;
+    }
+
 
     button {
 
@@ -112,12 +171,14 @@
       margin: 5px;
     }
 
+
     #startBtn {
 
       background: #16a34a;
 
       color: white;
     }
+
 
     #stopBtn {
 
@@ -126,10 +187,12 @@
       color: white;
     }
 
+
     button:active {
 
       transform: scale(0.97);
     }
+
 
     .result {
 
@@ -148,12 +211,14 @@
       word-break: break-all;
     }
 
+
     .result.success {
 
       border-color: #22c55e;
 
       color: #86efac;
     }
+
 
     .info {
 
@@ -168,6 +233,18 @@
       color: #cbd5e1;
 
       font-size: 14px;
+
+      line-height: 1.7;
+    }
+
+
+    .camera-info {
+
+      margin-top: 10px;
+
+      color: #94a3b8;
+
+      font-size: 13px;
     }
 
   </style>
@@ -176,25 +253,26 @@
 
 
 <body>
-<h2 id="test">TEST</h2>
 
-<script>
-document.getElementById("test").textContent =
-  "JavaScript يعمل بنجاح";
-</script>
+
 <div class="container">
 
-  <h1>📷 Warehouse Scanner</h1>
+
+  <h1>
+    📷 Warehouse Scanner
+  </h1>
+
 
   <div class="subtitle">
     امسح Barcode أو QR Code
   </div>
 
 
-  <div id="status" class="status">
-
+  <div
+    id="status"
+    class="status"
+  >
     اضغط "تشغيل الكاميرا" للبدء.
-
   </div>
 
 
@@ -207,6 +285,16 @@ document.getElementById("test").textContent =
       playsinline
     ></video>
 
+
+    <div class="scan-frame"></div>
+
+  </div>
+
+
+  <div
+    id="cameraInfo"
+    class="camera-info"
+  >
   </div>
 
 
@@ -215,6 +303,7 @@ document.getElementById("test").textContent =
     <button id="startBtn">
       📷 تشغيل الكاميرا
     </button>
+
 
     <button id="stopBtn">
       ⛔ إيقاف
@@ -233,18 +322,26 @@ document.getElementById("test").textContent =
 
   <div class="info">
 
-    وجّه الكاميرا إلى Barcode وانتظر حتى يتم التعرف عليه تلقائيًا.
+    وجّه الباركود داخل المربع الأبيض.
+
+    <br>
+
+    حاول أن يكون الباركود واضحًا وكبيرًا في الصورة.
+
+    <br>
+
+    اترك مسافة تقريبًا 10–30 سم بين الكاميرا والباركود.
 
   </div>
+
 
 </div>
 
 
 <script>
 
-let codeReader = null;
 
-let currentDeviceId = null;
+let codeReader = null;
 
 let scanning = false;
 
@@ -261,17 +358,27 @@ const resultBox =
   document.getElementById("result");
 
 
-function setStatus(message, type = "") {
+const cameraInfo =
+  document.getElementById("cameraInfo");
+
+
+
+function setStatus(
+  message,
+  type = ""
+) {
 
   statusBox.textContent = message;
 
   statusBox.className = "status";
+
 
   if (type === "success") {
 
     statusBox.classList.add("success");
 
   }
+
 
   if (type === "error") {
 
@@ -282,16 +389,35 @@ function setStatus(message, type = "") {
 }
 
 
+
+/*
+  تشغيل الكاميرا
+*/
+
 async function startCamera() {
 
   try {
 
+
     stopCamera();
+
+
+    resultBox.textContent =
+      "جاري البحث عن Barcode...";
+
+
+    resultBox.className =
+      "result";
+
 
     setStatus(
       "جاري تشغيل الكاميرا..."
     );
 
+
+    /*
+      التأكد من HTTPS
+    */
 
     if (!window.isSecureContext) {
 
@@ -302,130 +428,98 @@ async function startCamera() {
     }
 
 
+    /*
+      التأكد من وجود ZXing
+    */
+
     if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
+      typeof ZXingBrowser ===
+      "undefined"
     ) {
 
       throw new Error(
-        "المتصفح لا يدعم الوصول إلى الكاميرا."
+        "ZXingBrowser غير موجود.\n" +
+        "تأكد أن مكتبة ZXing تم تحميلها."
       );
 
     }
 
 
     /*
-      نطلب إذن الكاميرا أولًا
-      حتى نضمن أن المتصفح يسمح بها.
-    */
-
-    const testStream =
-      await navigator.mediaDevices.getUserMedia({
-
-        video: true,
-
-        audio: false
-
-      });
-
-
-    testStream
-      .getTracks()
-      .forEach(track => track.stop());
-
-
-    setStatus(
-      "تم السماح بالكاميرا.\nجاري البحث عن الكاميرات..."
-    );
-
-
-    /*
-      إنشاء قارئ ZXing
+      إنشاء قارئ متعدد الصيغ
     */
 
     codeReader =
       new ZXingBrowser.BrowserMultiFormatReader();
 
 
-    /*
-      الحصول على الكاميرات
-    */
-
-    const devices =
-      await ZXingBrowser.BrowserCodeReader
-        .listVideoInputDevices();
-
-
-    if (!devices || devices.length === 0) {
-
-      throw new Error(
-        "لم يتم العثور على كاميرا."
-      );
-
-    }
-
-
-    /*
-      نحاول اختيار الكاميرا الخلفية
-      إن كانت متاحة.
-    */
-
-    let selectedDevice =
-      devices.find(device => {
-
-        const label =
-          (device.label || "").toLowerCase();
-
-        return (
-          label.includes("back") ||
-          label.includes("rear") ||
-          label.includes("environment")
-        );
-
-      });
-
-
-    /*
-      لو لم نجد كاميرا خلفية،
-      نستخدم أول كاميرا.
-    */
-
-    if (!selectedDevice) {
-
-      selectedDevice = devices[0];
-
-    }
-
-
-    currentDeviceId =
-      selectedDevice.deviceId;
-
-
-    setStatus(
-      "📷 الكاميرا تعمل.\nوجّهها الآن إلى Barcode."
-    );
-
-
     scanning = true;
 
 
+    setStatus(
+      "📷 الكاميرا تعمل.\n" +
+      "وجّه الباركود داخل المربع الأبيض."
+    );
+
+
     /*
-      بدء القراءة المستمرة
+      تشغيل الكاميرا والقراءة
     */
 
-    await codeReader.decodeFromVideoDevice(
+    await codeReader.decodeFromConstraints(
 
-      currentDeviceId,
+      {
+
+        video: {
+
+          facingMode: {
+            ideal: "environment"
+          },
+
+          width: {
+            ideal: 1920
+          },
+
+          height: {
+            ideal: 1080
+          },
+
+          frameRate: {
+            ideal: 30
+          }
+
+        },
+
+        audio: false
+
+      },
+
 
       video,
 
-      (result, error) => {
+
+      (
+        result,
+        error,
+        controls
+      ) => {
+
+
+        /*
+          لو تم العثور على Barcode
+        */
 
         if (result) {
 
-          handleBarcode(
-            result.getText()
-          );
+          const value =
+            result.getText();
+
+
+          if (value) {
+
+            handleBarcode(value);
+
+          }
 
         }
 
@@ -434,9 +528,24 @@ async function startCamera() {
     );
 
 
-  } catch (error) {
+    /*
+      معلومات الكاميرا
+    */
 
-    console.error(error);
+    setTimeout(
+      showCameraInfo,
+      1000
+    );
+
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Scanner Error:",
+      error
+    );
 
 
     let message =
@@ -480,9 +589,13 @@ async function startCamera() {
     else if (error.message) {
 
       message +=
-        "\n" + error.message;
+        "\n" +
+        error.message;
 
     }
+
+
+    scanning = false;
 
 
     setStatus(
@@ -495,23 +608,68 @@ async function startCamera() {
 }
 
 
+
+/*
+  عرض معلومات الكاميرا
+*/
+
+function showCameraInfo() {
+
+  try {
+
+    if (
+      video.videoWidth &&
+      video.videoHeight
+    ) {
+
+      cameraInfo.textContent =
+        "دقة الكاميرا: " +
+        video.videoWidth +
+        " × " +
+        video.videoHeight;
+
+    }
+
+  }
+
+  catch (e) {
+
+    console.log(e);
+
+  }
+
+}
+
+
+
+/*
+  تم العثور على Barcode
+*/
+
 function handleBarcode(value) {
 
+
   if (!value) {
+
     return;
+
   }
 
 
-  /*
-    منع تكرار القراءة
-  */
-
   if (!scanning) {
+
     return;
+
   }
 
 
   scanning = false;
+
+
+  console.log(
+    "BARCODE FOUND:",
+    value
+  );
 
 
   resultBox.textContent =
@@ -529,15 +687,7 @@ function handleBarcode(value) {
 
 
   /*
-    إيقاف الكاميرا بعد القراءة
-  */
-
-  stopCamera();
-
-
-  /*
-    نسخ النتيجة للحافظة
-    لتسهيل الاختبار.
+    نسخ الكود للحافظة
   */
 
   if (
@@ -551,10 +701,26 @@ function handleBarcode(value) {
 
   }
 
+
+  /*
+    إيقاف الكاميرا
+  */
+
+  setTimeout(
+    stopCamera,
+    300
+  );
+
 }
 
 
+
+/*
+  إيقاف الكاميرا
+*/
+
 function stopCamera() {
+
 
   scanning = false;
 
@@ -565,9 +731,14 @@ function stopCamera() {
 
       codeReader.reset();
 
-    } catch (e) {
+    }
 
-      console.log(e);
+    catch (e) {
+
+      console.log(
+        "Reset error:",
+        e
+      );
 
     }
 
@@ -576,11 +747,9 @@ function stopCamera() {
 
   codeReader = null;
 
-  currentDeviceId = null;
-
 
   /*
-    إيقاف أي Stream موجود
+    إيقاف الفيديو
   */
 
   if (video.srcObject) {
@@ -588,16 +757,27 @@ function stopCamera() {
     const tracks =
       video.srcObject.getTracks();
 
-    tracks.forEach(track => {
-      track.stop();
-    });
+
+    tracks.forEach(
+      track => track.stop()
+    );
+
 
     video.srcObject = null;
 
   }
 
+
+  cameraInfo.textContent =
+    "";
+
 }
 
+
+
+/*
+  زر التشغيل
+*/
 
 document
   .getElementById("startBtn")
@@ -607,6 +787,11 @@ document
   );
 
 
+
+/*
+  زر الإيقاف
+*/
+
 document
   .getElementById("stopBtn")
   .addEventListener(
@@ -615,6 +800,7 @@ document
 
       stopCamera();
 
+
       setStatus(
         "تم إيقاف الكاميرا."
       );
@@ -622,6 +808,11 @@ document
     }
   );
 
+
+
+/*
+  تنظيف عند إغلاق الصفحة
+*/
 
 window.addEventListener(
   "beforeunload",
@@ -632,7 +823,9 @@ window.addEventListener(
   }
 );
 
+
 </script>
+
 
 </body>
 
