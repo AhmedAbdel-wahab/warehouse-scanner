@@ -118,6 +118,18 @@
     .controls button.on { background: var(--warn); border-color: var(--warn); color: #111; }
     .controls button[hidden] { display: none; }
 
+    .manual { display: flex; gap: 10px; margin-top: 12px; }
+    .manual input {
+      flex: 1; min-width: 0; padding: 12px 14px; font-size: 15px;
+      background: var(--card); color: var(--text);
+      border: 1px solid var(--line); border-radius: 12px; outline: none;
+    }
+    .manual input:focus { border-color: var(--accent); }
+    .manual button {
+      border: 0; border-radius: 12px; padding: 0 20px; font-weight: 700; font-size: 15px;
+      background: var(--accent); color: #fff; cursor: pointer;
+    }
+
     /* ---------- history ---------- */
     .history { margin-top: 16px; }
     .history h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
@@ -187,6 +199,11 @@
     <button id="torchBtn" hidden><span>🔦</span>إضاءة</button>
   </div>
 
+  <div class="manual">
+    <input id="manual" placeholder="أو اكتب الباركود / الكود يدويًا" autocomplete="off">
+    <button id="manualBtn">إرسال</button>
+  </div>
+
   <section class="history">
     <h2>آخر المسحات</h2>
     <ul id="list"><li class="empty">لا توجد مسحات بعد</li></ul>
@@ -234,6 +251,9 @@
 
   let reader = null;
   let controls = null;
+  let detector = null;
+  let detectTimer = null;
+  let detecting = false;
   let running = false;
   let devices = [];
   let torchOn = false;
@@ -486,6 +506,8 @@
   async function stopCamera() {
     running = false;
 
+    clearInterval(detectTimer);
+    detector = null;
     try { if (controls && controls.stop) controls.stop(); } catch (e) {}
     try { if (reader && reader.reset) reader.reset(); } catch (e) {}
     controls = null;
@@ -504,28 +526,64 @@
     toggleBtn.classList.add("primary");
   }
 
+  async function listCams() {
+    try {
+      const all = await navigator.mediaDevices.enumerateDevices();
+      return all.filter((d) => d.kind === "videoinput");
+    } catch (e) { return []; }
+  }
+
   async function startCamera(deviceId) {
     await stopCamera();
     setStatus("info", "جاري تشغيل الكاميرا…");
 
-    if (typeof ZXingBrowser === "undefined") {
-      setStatus("error", "تعذر تحميل مكتبة القراءة — تأكد من الإنترنت ثم أعد فتح الصفحة");
-      return;
-    }
+    /* دقة أعلى = قراءة أفضل للباركود الصغير */
+    const video_c = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+    if (deviceId) video_c.deviceId = { exact: deviceId };
+    else video_c.facingMode = { ideal: "environment" };
 
     try {
-      reader = new ZXingBrowser.BrowserMultiFormatReader();
+      let started = false;
 
-      const callback = (result) => { if (result) onScan(result.getText()); };
+      /* 1) القارئ الأصلي للمتصفح (أسرع وأدق) لو متاح */
+      if ("BarcodeDetector" in window) {
+        try {
+          detector = new BarcodeDetector();
+          const stream = await navigator.mediaDevices.getUserMedia({ video: video_c });
+          video.srcObject = stream;
+          await video.play();
 
-      if (deviceId) {
-        controls = await reader.decodeFromVideoDevice(deviceId, video, callback);
-      } else {
-        controls = await reader.decodeFromConstraints(
-          { video: { facingMode: { ideal: "environment" } } },
-          video,
-          callback
-        );
+          detectTimer = setInterval(async () => {
+            if (!running || detecting || video.readyState < 2) return;
+            detecting = true;
+            try {
+              const found = await detector.detect(video);
+              if (found.length) onScan(found[0].rawValue);
+            } catch (e) {}
+            detecting = false;
+          }, 120);
+
+          started = true;
+        } catch (e) {
+          const n = e && e.name;
+          if (n === "NotAllowedError" || n === "PermissionDeniedError" || n === "NotFoundError") throw e;
+          detector = null;
+          if (video.srcObject) { video.srcObject.getTracks().forEach((t) => t.stop()); video.srcObject = null; }
+        }
+      }
+
+      /* 2) ZXing كبديل (مع وضع المحاولة الأقوى) */
+      if (!started) {
+        if (typeof ZXingBrowser === "undefined") {
+          setStatus("error", "تعذر تحميل مكتبة القراءة — تأكد من الإنترنت ثم أعد فتح الصفحة");
+          return;
+        }
+
+        const hints = new Map([[3, true]]);              // TRY_HARDER
+        reader = new ZXingBrowser.BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 100 });
+
+        const callback = (result) => { if (result) onScan(result.getText()); };
+        controls = await reader.decodeFromConstraints({ video: video_c }, video, callback);
       }
 
       running = true;
@@ -533,11 +591,10 @@
       toggleBtn.innerHTML = "<span>⏹</span>إيقاف";
       toggleBtn.classList.remove("primary");
 
-      /* بعد منح الإذن تظهر أسماء الكاميرات */
-      try {
-        devices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
-      } catch (e) { devices = []; }
+      /* تركيز تلقائي مستمر لو الكاميرا تدعمه */
+      try { await currentTrack().applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch (e) {}
 
+      devices = await listCams();
       setupTorch();
       setStatus("ready", "الكاميرا تعمل — وجّه الباركود داخل الإطار");
 
@@ -604,6 +661,17 @@
   toggleBtn.onclick = () => (running ? (stopCamera(), setStatus("warn", "الكاميرا متوقفة")) : startCamera());
   switchBtn.onclick = switchCamera;
   torchBtn.onclick = toggleTorch;
+
+  function sendManual() {
+    const code = $("manual").value.trim();
+    if (!code) return;
+    $("manual").value = "";
+    lastCode = "";            // تجاوز منع التكرار
+    onScan(code);
+  }
+
+  $("manualBtn").onclick = sendManual;
+  $("manual").addEventListener("keydown", (e) => { if (e.key === "Enter") sendManual(); });
 
   /* إيقاف الكاميرا عند مغادرة الصفحة لتوفير البطارية */
   document.addEventListener("visibilitychange", () => {
